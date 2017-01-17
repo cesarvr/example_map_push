@@ -1,0 +1,21 @@
+.progress{
+  position: absolute;
+  stroke: white;
+  height: 100%;
+  width: 40px;
+  stroke-width: 3px;
+  stroke-opacity: 0.6;
+  background-color: black;
+}
+
+.current {
+  animation: redeye 2s infinite alternate;
+}
+
+@keyframes redeye {
+  to {
+    fill: green;
+    stroke: #A5D6A7;
+    r: 8;
+  }
+}

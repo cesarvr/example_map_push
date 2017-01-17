@@ -1,0 +1,26 @@
+.notify {
+  top: 0px;
+  position: absolute;
+  background-color: black;
+  width: 100%;
+  opacity: 0.8;
+  transition: opacity .85s ease-in-out;
+  -webkit-transition: opacity .85s ease-in-out;
+}
+
+.loading {
+  background-repeat: no-repeat;
+  background-position-y: -4px;
+  background-position-x: -2px;
+  background-image: url("../assets/ripple.svg");
+}
+
+.hide-notification {
+  opacity: 0;
+}
+
+.notify > p {
+  color: white;
+  margin: 3px;
+  margin-left: 30px;
+}

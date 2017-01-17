@@ -1,0 +1,21 @@
+.happy {
+  position: relative;
+  height: 24px;
+  width: 24px;
+  left: 303px;
+  background-image: url("../assets/emoticon-excited.svg");
+}
+
+.sad {
+  position: relative;
+  top: 25px;
+  left: -9px;
+  height: 24px;
+  width: 24px;
+  background-image: url("../assets/emoticon-sad.svg");
+}
+
+.happy .sad {
+  background-repeat: no-repeat;
+  position: relative;
+}

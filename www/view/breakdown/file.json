@@ -1,0 +1,13 @@
+{
+    "latitude": "55.673237",
+    "longitude": "12.559850",
+    "caseType": "Flat Tyre",
+    "name": "Lars Peterson",
+    "phoneNumber": "8765432176",
+    "flatTyreCount": "1",
+    "passengerCount": "2",
+    "directionTravelling": "w",
+    "customerProximity": "at car",
+    "caseComments": "at marker 52w on motorway",
+    "app":"consumer-app"
+}

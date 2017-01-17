@@ -1,0 +1,74 @@
+<h2>What issue are you experiencing?</h2>
+
+<p style="margin-bottom: 20px;"></p>
+
+<!-- Multiple Radios (inline) -->
+<div class="form-group">
+  <label class="col-md-4 control-label" for="radios">Where are you now?</label>
+  <div class="col-md-4">
+    <label class="radio-inline" for="radios-0">
+      <input name="radios" id="radios-0" value="1" checked="checked" type="radio">
+      At my Car.
+    </label>
+    <label class="radio-inline" for="radios-1">
+      <input name="radios" id="radios-1" value="2" type="radio">
+      Different Location
+    </label>
+  </div>
+</div>
+
+<p style="margin-bottom: 20px;"></p>
+
+<form class="ac-custom ac-checkbox ac-boxfill" style="padding: 0px;">
+  <ul>
+    <li>
+      <select class="reportBreak">
+        <option value="select">Select</option>
+        <option value="flat_tyre">Flat Tyre</option>
+        <option value="stopWorking">Stop Working</option>
+        <option value="no_fuel">No Fuel</option>
+        <option value="no_break">Breaks Not Working</option>
+        <option value="engine_issue">Engine Issue</option>
+        <option value="exhaust_issue">Exhaust Issue</option>
+
+      </select>
+    </li>
+    <li style="padding: 0px; width: 80%">
+
+
+      <!-- Additional options for flat tire -->
+      <div class="collapse" id="collapseExample">
+        <p class="wheels">How many flat tires 1</p>
+
+        <div class="container-slider">
+          <input class="tires-ammount" type="range" min="1" max="4" step="1" value="1" />
+        </div>
+
+        <ul>
+          <li>
+            <input id="replacement" name="replacement" type="checkbox">
+            <label for="cb1">I have replacement</label>
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"></svg>
+          </li>
+        </ul>
+
+      </div>
+      <!-- ================================ -->
+    </li>
+  </ul>
+</form>
+
+<div class=" form-hack">
+  <label class="col-md-4 control-label" for="singlebutton">Attach a photo</label>
+
+  <button id="singlebutton" name="singlebutton" class="btn btn-primary" disabled>
+    <span class="glyphicon glyphicon-camera" aria-hidden="true"></span>
+  </button>
+</div>
+
+<p>
+    <button class="btn btn-default btn-lg dropdown-toggle btn-next next-step" type="button">
+      Next
+      <span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>
+    </button>
+</p>
