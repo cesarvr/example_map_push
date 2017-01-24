@@ -20,10 +20,6 @@
     <allow-intent href="geo:*" />
     <platform name="android">
         <allow-intent href="market:*" />
-        <splash density="port-hdpi" src="res/screen/android/sos_300dpi.jpg" />
-        <splash density="port-ldpi" src="res/screen/android/sos_300dpi.jpg" />
-        <splash density="port-mdpi" src="res/screen/android/sos_300dpi.jpg" />
-        <splash density="port-xhdpi" src="res/screen/android/sos_300dpi.jpg" />
     </platform>
     <platform name="ios">
         <allow-intent href="itms:*" />

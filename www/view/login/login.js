@@ -11,18 +11,8 @@ var Login = {
     className: 'login-form',
 
     events: {
-        'change input': 'check',
+        'keyup input': 'check',
         'click .register': 'register'
-    },
-
-    initialize: function() {
-        this.listenTo(this.model, 'invalid', this.validate);
-
-        this.on('login:correct', function() {
-            this.$el.modal('hide');
-        }, this);
-
-        this.on('open:dialog', this.open, this);
     },
 
     render: function() {
@@ -37,16 +27,6 @@ var Login = {
 
     show: function() {
       this.$el.addClass('show');
-    },
-
-    hide: function(){
-      
-      this.$el.on("transitionend", function(event) {
-        debugger;
-        this.remove();
-      }.bind(), false);
-
-        this.$el.removeClass('show');
     },
 
     register: function(e){
