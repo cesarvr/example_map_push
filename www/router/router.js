@@ -46,7 +46,8 @@ var Router = Backbone.Router.extend({
         Geo.on('geolocation:position', this.notify.hide, this.notify);
 
         this.listenTo(User, 'user:not_found', this.loginScreen);
-        User.on('user:found', this.homeView.show, this.homeView);  
+        User.on('user:found', this.homeView.show, this.homeView);
+
 
     },
 
@@ -60,6 +61,9 @@ var Router = Backbone.Router.extend({
 
         this.loginView.show();
         this.homeView.lock();
+
+        //If we found the user hide this view.
+        User.on('user:found', this.loginView.remove, this.loginView);
     },
 
     loadRateView: function() {

@@ -1,4 +1,13 @@
-'use strict'; 
+'use strict';
+
+var _ = require('underscore');
+
+function DetectCordova(){
+  var cordova = !_.isUndefined(window.cordova);
+  return function(){
+    return cordova;
+  }
+};
 
 module.exports = {
 
@@ -21,13 +30,5 @@ module.exports = {
     return JSON.parse(localStorage.getItem(key));
   },
 
-  isCordovaEnable: function(){
-    var cordova = !_.isUndefined(window.cordova);
-    return function(){
-      return cordova;
-    }
-  }();
-
-
-
+  isCordovaEnable: DetectCordova()
 }

@@ -4,40 +4,34 @@ var Backbone = require('backbone');
 var $script = require("scriptjs");
 var $ = require('jquery');
 var _ = require('underscore');
-
-
 var geo = require('../../api/geo');
 
 
-//Quick and dirty Logger function 
-
+//Quick and dirty Logger function
 var _log = function(title) {
     return function(message) {
         console.log(title || 'generic', ': ', message, ' ->', Date.now());
     }
 }('Map');
 
-/*
- *
- *
- */
-
+// MapView Class listen to the following events
 var MapView = {
 
     GMAP_API: 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDoez83-bCpLCFESHMiNpfkBrplOV36Hbs',
 
+    // Sometimes you just want the same instance, to avoid duplication and Heap memory bloat.
     singleton: function() {
-        var objects = {};
+        var cachedInstances = {};
 
         return function(name) {
             var instance = null;
 
-            if (_.isUndefined(objects[name]))
+            if (_.isUndefined(cachedInstances[name]))
                 instance = new google.maps[name];
             else
-              return objects[name];
+              return cachedInstances[name];
 
-            objects[name] = instance;
+            cachedInstances[name] = instance;
             return instance;
         }
     }(),
@@ -62,7 +56,7 @@ var MapView = {
         this.map.setZoom(zoom || 15);
     },
 
-    /*  We need to inyect here a geolocation API, we listen for 
+    /*  We need to inyect here a geolocation API, we listen for
      *  the following events:
      *
      *    geolocation:position
@@ -72,10 +66,11 @@ var MapView = {
      *        lng: 'longitude'
      *      }
      *
+     *  Take a look at api/geo.js
      */
 
     initialize: function(options) {
-        if (_.isEmpty(options.geolocationAPI)) throw "Not GeoAPI Inyected";
+        if (_.isEmpty(options.geolocationAPI)) throw "Not geolocationAPI Inyected";
 
         var geo = options.geolocationAPI;
 
@@ -86,9 +81,9 @@ var MapView = {
         this.on('map:ready', this.start);
     },
 
-    /* 
+    /*
      * Start
-     * Method to load Google Map API.
+     * Instanciate the Google Map API.
      *
      */
     start: function() {
@@ -106,8 +101,9 @@ var MapView = {
         });
     },
 
-    /* 
-     * Download the Google Map API V3 and start working
+    /*
+     * Download the Google Map API V3 async and start working, when the API is downloaded
+     * we trigger an map:ready event.
      */
     loadAPI: function() {
 
@@ -118,9 +114,11 @@ var MapView = {
         return this;
     },
 
-
     /*
      * Quick and dirty example of using inverse Geocode Google API.
+     *
+     * When google maps resolve the address, we trigger an map:resolve:address and we pass a string parameter with
+     * the address.
      */
     getAddress: function(position) {
         var url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=$position$&key=$key$";
@@ -130,7 +128,6 @@ var MapView = {
         }, function(results, status) {
             if (status === google.maps.GeocoderStatus.OK)
                 this.trigger('map:resolve:address', results[0].formatted_address);
-
         }.bind(this));
     }
 };

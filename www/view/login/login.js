@@ -3,9 +3,7 @@
 var Backbone = require('backbone');
 var _ = require('underscore');
 var $ = require('jquery');
-
 var styles = require('../../style/login.css');
-
 var template = require('../../templates/login.html');
 
 var Login = {
@@ -18,12 +16,7 @@ var Login = {
     },
 
     initialize: function() {
-
         this.listenTo(this.model, 'invalid', this.validate);
-        this.listenTo(this.model, 'save', function(){
-          debugger;
-          console.log('boom _???')
-        });
 
         this.on('login:correct', function() {
             this.$el.modal('hide');
@@ -42,12 +35,18 @@ var Login = {
         return this;
     },
 
-    validate:function(){
-      console.log('boom')
-    },
-
     show: function() {
       this.$el.addClass('show');
+    },
+
+    hide: function(){
+      
+      this.$el.on("transitionend", function(event) {
+        debugger;
+        this.remove();
+      }.bind(), false);
+
+        this.$el.removeClass('show');
     },
 
     register: function(e){
@@ -62,7 +61,6 @@ var Login = {
       if(this.model.isValid())
         this.$register.prop('disabled', false);
     }
-
 };
 
 module.exports = Backbone.View.extend(Login);

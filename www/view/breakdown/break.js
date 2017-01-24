@@ -15,7 +15,6 @@ var _styles = require('../../style/options.css');
 var _slider_style = require('../../style/slider.css');
 var SVG = require('svg.js');
 
-
 var screenOne = require('../../templates/breakdown-first.html');
 var screenLast = require('../../templates/breakdown-last.html');
 var template = require('../../templates/breakdown.html');

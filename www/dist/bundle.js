@@ -13826,7 +13826,8 @@
 	        Geo.on('geolocation:position', this.notify.hide, this.notify);
 
 	        this.listenTo(User, 'user:not_found', this.loginScreen);
-	        User.on('user:found', this.homeView.show, this.homeView);  
+	        User.on('user:found', this.homeView.show, this.homeView);
+
 
 	    },
 
@@ -13840,6 +13841,9 @@
 
 	        this.loginView.show();
 	        this.homeView.lock();
+
+	        //If we found the user hide this view.
+	        User.on('user:found', this.loginView.remove, this.loginView);
 	    },
 
 	    loadRateView: function() {
@@ -13874,7 +13878,7 @@
 
 	var _ = __webpack_require__(2);
 	var factory = __webpack_require__(6);
-	var util = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"../utils/util\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
+	var util = __webpack_require__(7);
 
 	//** global: swal **
 	__webpack_require__(8)
@@ -13969,7 +13973,46 @@
 
 
 /***/ },
-/* 7 */,
+/* 7 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _ = __webpack_require__(2);
+
+	function DetectCordova(){
+	  var cordova = !_.isUndefined(window.cordova);
+	  return function(){
+	    return cordova;
+	  }
+	};
+
+	module.exports = {
+
+	  sparse: function(el){
+	    var sizeOfFather = el.offsetWidth;
+	    var totalElements = el.childElementCount;
+	    for(var index =0; index < totalElements; index++)
+	      el.children[index].setAttribute('style', 'width:' + sizeOfFather/totalElements +'px;')
+	  },
+
+	  msg: function(title, message, cb, btns){
+	    //msg
+	  },
+
+	  saveInDB: function(key, obj){
+	    localStorage.setItem(key, JSON.stringify(obj));
+	  },
+
+	  getFromDB: function(key){
+	    return JSON.parse(localStorage.getItem(key));
+	  },
+
+	  isCordovaEnable: DetectCordova()
+	}
+
+
+/***/ },
 /* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -15312,7 +15355,6 @@
 	  },
 
 	  validate: function(attrs){
-	    debugger;
 	    delete attrs.id;
 	    var empty = _.values(attrs).filter(_.isEmpty);
 
@@ -15334,8 +15376,8 @@
 	var _ = __webpack_require__(2);
 	var factory = __webpack_require__(6);
 	var $fh = __webpack_require__(20);
-	//var push_config = require('../push-config');
-	var util = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"../utils/util\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
+
+	var util = __webpack_require__(7);
 	var $ = __webpack_require__(3);
 
 	var mock = {
@@ -15373,13 +15415,12 @@
 	    }
 
 	    this.startWorkflow = function(obj) {
-
 	        if (util.isCordovaEnable()) {
 	            this.trigger('workflow:init', mock);
-	            this.mockLongPulling(mock);
+	        } else {
+	          this.mockLongPulling(mock);
 	        }
 	    };
-
 
 	    this.createNewWorkflow = function(caseDetails) {
 
@@ -15393,36 +15434,11 @@
 	                    data: JSON.stringify(caseDetails)
 	                })
 	                .done(function(msg) {
-	                    //  alert("Help is on the way" + JSON.stringify(msg));
+	                  // Handle server response.
 	                });
 	        } else {
 	            console.log('DEBUG MODE: mocking workflow');
 	        }
-	    };
-
-	    //Mocking for Debuging purposes.
-	    this.mockLongPulling = function(obj) {
-
-	        console.log(obj);
-	        var x = 1;
-	        var clock = setInterval(function() {
-	            var cnt = 0;
-	            x++;
-	            this.once = false;
-	            Object.keys(obj).forEach(function(key) {
-	                cnt++;
-	                if (cnt === x)
-	                    this.trigger('step:change', key);
-
-	                if (x === Object.keys(obj).length && !this.once) {
-	                    clearInterval(clock);
-	                    this.once = true;
-	                    this.trigger('step:finish', key);
-	                }
-	            }.bind(this));
-	        }.bind(this), 11000)
-
-	        this.trigger('step:change', Object.keys(obj)[0]);
 	    };
 
 	    // Register to the push notification server using Feedhenry Aerogear plugin.
@@ -15432,10 +15448,8 @@
 	                  errorHandler,
 	                  _.extend({
 	                      alias: user.id
-	                  }, 
+	                  },
 	                  push_config));
-
-
 	};
 
 	module.exports = factory(Workflow);
@@ -29035,40 +29049,34 @@
 	var $script = __webpack_require__(22);
 	var $ = __webpack_require__(3);
 	var _ = __webpack_require__(2);
-
-
 	var geo = __webpack_require__(5);
 
 
-	//Quick and dirty Logger function 
-
+	//Quick and dirty Logger function
 	var _log = function(title) {
 	    return function(message) {
 	        console.log(title || 'generic', ': ', message, ' ->', Date.now());
 	    }
 	}('Map');
 
-	/*
-	 *
-	 *
-	 */
-
+	// MapView Class listen to the following events
 	var MapView = {
 
 	    GMAP_API: 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDoez83-bCpLCFESHMiNpfkBrplOV36Hbs',
 
+	    // Sometimes you just want the same instance, to avoid duplication and Heap memory bloat.
 	    singleton: function() {
-	        var objects = {};
+	        var cachedInstances = {};
 
 	        return function(name) {
 	            var instance = null;
 
-	            if (_.isUndefined(objects[name]))
+	            if (_.isUndefined(cachedInstances[name]))
 	                instance = new google.maps[name];
 	            else
-	              return objects[name];
+	              return cachedInstances[name];
 
-	            objects[name] = instance;
+	            cachedInstances[name] = instance;
 	            return instance;
 	        }
 	    }(),
@@ -29093,7 +29101,7 @@
 	        this.map.setZoom(zoom || 15);
 	    },
 
-	    /*  We need to inyect here a geolocation API, we listen for 
+	    /*  We need to inyect here a geolocation API, we listen for
 	     *  the following events:
 	     *
 	     *    geolocation:position
@@ -29103,10 +29111,11 @@
 	     *        lng: 'longitude'
 	     *      }
 	     *
+	     *  Take a look at api/geo.js
 	     */
 
 	    initialize: function(options) {
-	        if (_.isEmpty(options.geolocationAPI)) throw "Not GeoAPI Inyected";
+	        if (_.isEmpty(options.geolocationAPI)) throw "Not geolocationAPI Inyected";
 
 	        var geo = options.geolocationAPI;
 
@@ -29117,9 +29126,9 @@
 	        this.on('map:ready', this.start);
 	    },
 
-	    /* 
+	    /*
 	     * Start
-	     * Method to load Google Map API.
+	     * Instanciate the Google Map API.
 	     *
 	     */
 	    start: function() {
@@ -29137,8 +29146,9 @@
 	        });
 	    },
 
-	    /* 
-	     * Download the Google Map API V3 and start working
+	    /*
+	     * Download the Google Map API V3 async and start working, when the API is downloaded
+	     * we trigger an map:ready event.
 	     */
 	    loadAPI: function() {
 
@@ -29149,9 +29159,11 @@
 	        return this;
 	    },
 
-
 	    /*
 	     * Quick and dirty example of using inverse Geocode Google API.
+	     *
+	     * When google maps resolve the address, we trigger an map:resolve:address and we pass a string parameter with
+	     * the address.
 	     */
 	    getAddress: function(position) {
 	        var url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=$position$&key=$key$";
@@ -29161,7 +29173,6 @@
 	        }, function(results, status) {
 	            if (status === google.maps.GeocoderStatus.OK)
 	                this.trigger('map:resolve:address', results[0].formatted_address);
-
 	        }.bind(this));
 	    }
 	};
@@ -29312,19 +29323,25 @@
 
 	var Home = {
 
-	    lock: function(){
-	      this.$el.find('.site-wrapper').addClass('blurBackground');
+	    initialize: function(){
 	      this.$cover =  $('<div>').addClass('cover').appendTo('body');
+	      this.$site = this.$el.find('.site-wrapper');
+	    },
 
+	    lock: function(){
+	      this.$site.addClass('blurBackground');
+
+	      //just add this to avoid user interaction with the map while login.
 	      setTimeout(function(){ this.$cover.addClass('show')  }.bind(this),200)
-
 	    },
 
 	    show: function(){
-	      if(this.$cover)
-	        this.$cover.removeClass('blurBackground');
-	    },
 
+	      if(this.$site) {
+	        this.$site.removeClass('blurBackground');
+	        this.$cover.removeClass('show');
+	      }
+	    },
 	};
 
 	module.exports = Backbone.View.extend(Home);
@@ -29345,12 +29362,11 @@
 
 	var FLAT_TYRE = 1;
 
-	var util = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"../../utils/util\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
+	var util = __webpack_require__(7);
 	var _log = __webpack_require__(17)('breakdown_report');
 	var _styles = __webpack_require__(38);
 	var _slider_style = __webpack_require__(42);
 	var SVG = __webpack_require__(44);
-
 
 	var screenOne = __webpack_require__(45);
 	var screenLast = __webpack_require__(46);
@@ -37708,9 +37724,7 @@
 	var Backbone = __webpack_require__(1);
 	var _ = __webpack_require__(2);
 	var $ = __webpack_require__(3);
-
 	var styles = __webpack_require__(50);
-
 	var template = __webpack_require__(52);
 
 	var Login = {
@@ -37723,12 +37737,7 @@
 	    },
 
 	    initialize: function() {
-
 	        this.listenTo(this.model, 'invalid', this.validate);
-	        this.listenTo(this.model, 'save', function(){
-	          debugger;
-	          console.log('boom _???')
-	        });
 
 	        this.on('login:correct', function() {
 	            this.$el.modal('hide');
@@ -37747,12 +37756,18 @@
 	        return this;
 	    },
 
-	    validate:function(){
-	      console.log('boom')
-	    },
-
 	    show: function() {
 	      this.$el.addClass('show');
+	    },
+
+	    hide: function(){
+	      
+	      this.$el.on("transitionend", function(event) {
+	        debugger;
+	        this.remove();
+	      }.bind(), false);
+
+	        this.$el.removeClass('show');
 	    },
 
 	    register: function(e){
@@ -37767,7 +37782,6 @@
 	      if(this.model.isValid())
 	        this.$register.prop('disabled', false);
 	    }
-
 	};
 
 	module.exports = Backbone.View.extend(Login);
@@ -37805,7 +37819,7 @@
 
 
 	// module
-	exports.push([module.id, "\n.login-form {\n  height: 100%;\n  width: 100%;\n  z-index: 4;\n  position: absolute;\n  background: transparent;\n  top: 0px;\n  opacity: 0; \n  -webkit-transition: width, top, opacity 1s; \n}\n\n.login-back.show {\n  opacity: 1;\n}\n \n.login-form.show {\n  opacity: 1;\n}\n\n.form-horizontal {\n max-width: 475px;\n}\n\n.register {\n    width: 100%;\n    height: 70px;\n    /* opacity: 0.8; */\n    border-color: #75817f;\n    background-color: #75817f;\n    color: #a1aeb6;\n\n}\n\n.title {\n fill:white;\n}\n\n.istyle > input {\n height: 70px;\n background: #495560;\n opacity: 0.8;\n color: white;\n text-transform: uppercase;\n float: right;\n width: 384px;\n border-style: none;\n}\n\n.icon-descriptor {\n    width: 87px;\n    position: absolute;\n    height: 70px;\n    float: left;\n    background-color: black;\n    border-radius: 2px;\n    opacity: 0.6;\n    left: 21px;\n}\n\n\n\n.istyle > input::-webkit-input-placeholder {\n  color: white;\n}\n\n", ""]);
+	exports.push([module.id, "\n.login-form {\n  height: 100%;\n  width: 100%;\n  z-index: 4;\n  position: absolute;\n  background: transparent;\n  top: 0px;\n  opacity: 0;\n  -webkit-transition: width, top, opacity 1s;\n}\n\n.form-container {\n  position: relative;\n  width: 360px;\n  margin-right: auto;\n  margin-left: auto;\n  margin-top: 25%;\n}\n\n.login-back.show {\n  opacity: 1;\n}\n\n\n\n.login-form.show {\n  opacity: 1;\n}\n\n.form-horizontal {\n max-width: 475px;\n}\n\n.register {\n    width: 100%;\n    height: 70px;\n    /* opacity: 0.8; */\n    border-color: #75817f;\n    background-color: #75817f;\n    color: #a1aeb6;\n\n}\n\n.title {\n fill:white;\n}\n\n.box-form {\n  width: 86%;\n  height: 81px;\n\n  margin-right: auto;\n  margin-left: auto;\n}\n\n.box-form > input {\n height: 70px;\n background: #495560;\n opacity: 0.8;\n color: white;\n text-transform: uppercase;\n float: right;\n border-style: none;\n}\n\n.box-form > .title {\n  text-align: center;\n  font-size: 59px;\n  color:white;\n}\n\n.box-input {\n  margin-top: 10px;\n}\n\n.icon-descriptor {\n    width: 87px;\n    position: absolute;\n    height: 70px;\n    float: left;\n    background-color: black;\n    border-radius: 2px;\n    opacity: 0.6;\n    left: 21px;\n}\n\n\n\n.box-form > input::-webkit-input-placeholder {\n  color: white;\n}\n", ""]);
 
 	// exports
 
@@ -37817,7 +37831,7 @@
 	module.exports = function(obj){
 	var __t,__p='',__j=Array.prototype.join,print=function(){__p+=__j.call(arguments,'');};
 	with(obj||{}){
-	__p+='      <div class="modal-body">\r\n    \r\n\r\n\r\n          <svg xmlns="http://www.w3.org/2000/svg" width="500" height="200" class="title" viewBox="0 0 500 40">\r\n            <text x="0" y="35" transform="translate(100)" font-family="Arial" font-size="45">\r\n              Demo - wfm\r\n            </text>\r\n          </svg>\r\n\r\n\r\n          <form class="form-horizontal">\r\n              <fieldset>\r\n\r\n              <!-- Form Name -->\r\n              <!-- <legend>Login</legend> -->\r\n\r\n              <!-- Text input-->\r\n              <div class="form-group ">\r\n                <div class="col-md-6 istyle">\r\n                  <div class="icon-descriptor"></div>\r\n                  <input id="user" name="user" placeholder="User" \r\n                  style="" \r\n                  class="form-control input-md" \r\n                  required="" type="text">\r\n                </div>\r\n              </div>\r\n\r\n              <!-- Text input-->\r\n              <div class="form-group ">\r\n                <div class="col-md-5 istyle">\r\n                <div class="icon-descriptor"></div>\r\n                <input id="phone" name="phone" type="tel" placeholder="Password" class="form-control input-md" required="" type="text">\r\n                <span class="help-block"></span>\r\n                </div>\r\n              </div>\r\n\r\n              <!-- Button -->\r\n              <div class="form-group">\r\n                <label class="col-md-4 control-label" for="login-btn"></label>\r\n                <div class="col-md-4">\r\n                  <button id="login-btn" name="login-btn" class="btn btn-primary btn-lg dropdown-toggle btn-next register">\r\n                    Continue\r\n                  </button>\r\n                </div>\r\n              </div>\r\n\r\n              </fieldset>\r\n            </form>\r\n\r\n        </div>\r\n';
+	__p+='<div class="form-container">\n      <div class="box-form">\n        <p class="title">Taxi Demo</p>\n      </div>\n    <div class="form-wrapper">\n        <fieldset>\n\n            <!-- Form Name -->\n            <!-- <legend>Login</legend> -->\n            <!-- Text input-->\n\n            <div class="box-form box-input">\n\n                <input id="user" name="user" placeholder="User" style="" class="form-control input-md" required="" type="text">\n            </div>\n\n\n\n            <div class="box-form box-input">\n                <input id="phone" name="phone" type="tel" placeholder="Password" class="form-control input-md" required="" type="text">\n                <span class="help-block"></span>\n            </div>\n\n\n            <!-- Button -->\n\n            <div class="box-form box-input">\n                <button id="login-btn" name="login-btn" class="btn btn-primary btn-lg dropdown-toggle btn-next register">\n                    Continue\n                  </button>\n            </div>\n\n\n        </fieldset>\n    </div>\n\n\n</div>\n';
 	}
 	return __p;
 	};
@@ -37913,7 +37927,7 @@
 	var Backbone = __webpack_require__(1);
 	var _ = __webpack_require__(2);
 	var $ = __webpack_require__(3);
-	var util = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"../../utils/util\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()))
+	var util = __webpack_require__(7)
 
 	/* Load CSS */
 	__webpack_require__(58);

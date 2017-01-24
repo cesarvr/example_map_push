@@ -30,7 +30,6 @@ var User = Backbone.Model.extend({
   },
 
   validate: function(attrs){
-    debugger;
     delete attrs.id;
     var empty = _.values(attrs).filter(_.isEmpty);
 

@@ -6,14 +6,24 @@
   position: absolute;
   background: transparent;
   top: 0px;
-  opacity: 0; 
-  -webkit-transition: width, top, opacity 1s; 
+  opacity: 0;
+  -webkit-transition: width, top, opacity 1s;
+}
+
+.form-container {
+  position: relative;
+  width: 360px;
+  margin-right: auto;
+  margin-left: auto;
+  margin-top: 25%;
 }
 
 .login-back.show {
   opacity: 1;
 }
- 
+
+
+
 .login-form.show {
   opacity: 1;
 }
@@ -36,15 +46,32 @@
  fill:white;
 }
 
-.istyle > input {
+.box-form {
+  width: 86%;
+  height: 81px;
+
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.box-form > input {
  height: 70px;
  background: #495560;
  opacity: 0.8;
  color: white;
  text-transform: uppercase;
  float: right;
- width: 384px;
  border-style: none;
+}
+
+.box-form > .title {
+  text-align: center;
+  font-size: 59px;
+  color:white;
+}
+
+.box-input {
+  margin-top: 10px;
 }
 
 .icon-descriptor {
@@ -60,7 +87,6 @@
 
 
 
-.istyle > input::-webkit-input-placeholder {
+.box-form > input::-webkit-input-placeholder {
   color: white;
 }
-
