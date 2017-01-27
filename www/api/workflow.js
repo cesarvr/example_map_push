@@ -79,4 +79,6 @@ var Workflow = function(user) {
                   push_config));
 };
 
-module.exports = factory(Workflow);
+util.extendWithBackboneEvents(Workflow);
+
+module.exports = Workflow;

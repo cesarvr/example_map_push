@@ -1,0 +1,32 @@
+.console {
+  position: absolute;
+  overflow: hidden;
+  top: 3%;
+  left: 3%;
+  width: 93%;
+  opacity: 0;
+  background-color: black;
+
+  margin-right: auto;
+  margin-left: auto;
+
+  height: 50px;
+
+
+  /*transition: opacity, color, height 0.75s ease-in-out;
+  -webkit-transition: opacity, color, height 0.75s ease-in-out;*/
+
+  transition: opacity .75s ease-in-out;
+  -webkit-transition: opacity .75s ease-in-out;
+
+  -webkit-box-shadow: 1px 1px 6px 2.4px #080808;
+  box-shadow: 1px 1px 6px 2.4px #080808;
+}
+
+.console.show {
+    opacity: 0.6;
+}
+
+.console > p.active {
+  color: white;
+}

@@ -2,8 +2,8 @@
 
 var _log = function(title) {
     return function(message) {
-        console.log(title || 'generic', ': ', message, ' ->', Date.now());
+        console.log(Date.now()+': ', title || 'generic', ': ', message);
     }
 };
 
-module.exports = _log; 
+module.exports = _log;

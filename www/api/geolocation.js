@@ -3,16 +3,7 @@
 var _ = require('underscore');
 var factory = require('../utils/factory');
 var util = require('../utils/util');
-
-//** global: swal **
-require('sweetalert')
-
 var _log = require('../utils/log')('location');
-
-function handleError(msg){
-  console.log('Error: ', msg);
-  util.msg('Error: ', msg);
-}
 
 var Location = function() {
     var self = this;
@@ -20,6 +11,7 @@ var Location = function() {
     var lastKnowPosition = {};
 
     this.getLocationAPI = function() {
+
         if ("geolocation" in navigator) {
             this.geo = navigator.geolocation;
             return this;
@@ -43,17 +35,16 @@ var Location = function() {
             lastKnowPosition.latitude = position.coords.latitude;
             lastKnowPosition.longitude = position.coords.latitude;
 
-            _log('location found...');
+            _log('location found: ' + JSON.stringify(pos));
             self.trigger('geolocation:position', pos);
         });
     };
 
-    this.getLastKnowPosition = function(){
-      return lastKnowPosition;
+    this.getLastKnowPosition = function() {
+        return lastKnowPosition;
     };
-}
+};
 
+util.extendWithBackboneEvents(Location);
 
-
-
-module.exports = factory(Location);
+module.exports = new Location();

@@ -4,15 +4,8 @@ var Backbone = require('backbone');
 var $script = require("scriptjs");
 var $ = require('jquery');
 var _ = require('underscore');
-var geo = require('../../api/geo');
 
-
-//Quick and dirty Logger function
-var _log = function(title) {
-    return function(message) {
-        console.log(title || 'generic', ': ', message, ' ->', Date.now());
-    }
-}('Map');
+var _log = require('../../utils/log')('MapView');
 
 // MapView Class listen to the following events
 var MapView = {
@@ -99,7 +92,28 @@ var MapView = {
                 lng: -70.1627
             }
         });
+
+        google.maps.event.addDomListener(this.$el[0], 'touchstart', this.onTouchStart.bind(this));
+        google.maps.event.addDomListener(this.$el[0], 'touchend', this.onTouchEnd.bind(this));
+
     },
+
+    /*
+      The map is being touch.
+    */
+    onTouchStart: function(){
+      this.trigger('map:touch:start');
+      return true; // bubble up the touchstart event, means this don't freeze the UI.
+    },
+
+    /*
+      The map is being touch.
+    */
+    onTouchEnd: function(){
+      this.trigger('map:touch:end');
+      return true; // bubble up the touchstart event, means this don't freeze the UI.
+    },
+
 
     /*
      * Download the Google Map API V3 async and start working, when the API is downloaded

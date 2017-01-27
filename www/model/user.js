@@ -2,20 +2,28 @@
 
 var _ = require('underscore');
 var Backbone = require('backbone');
+var _log = require('../utils/log')('user-model');
 
-var User = Backbone.Model.extend({
+var User = {
+
+  defaults: {
+    user: '',
+    phone: ''
+  },
 
   initialize: function(){
     var userDB = localStorage.getItem('user');
 
-    if(!_.isEmpty(userDB)) {
+    if(!_.isEmpty(userDB))
       this.attributes = JSON.parse(userDB);
-    }else
-      console.log('User not found...');
+    else
+      _log('User not found...');
   },
 
   checkCredentials: function(){
-    if(_.isEmpty(this.attributes) || _.isEmpty(this.attributes.phone) )
+    var invalid = _.values(this.attributes).filter(_.isEmpty).length > 0;
+
+    if(invalid)
       this.trigger('user:not_found', this);
     else
       this.trigger('user:found', this);
@@ -23,20 +31,19 @@ var User = Backbone.Model.extend({
 
   saveInLocalStorage: function(){
     if(this.isValid()) {
-      delete this.attributes.id;
       var userDB = localStorage.setItem('user', JSON.stringify(this.attributes));
       this.checkCredentials();
     }
   },
 
-  validate: function(attrs){
+  validate: function(attrs) {
     delete attrs.id;
-    var empty = _.values(attrs).filter(_.isEmpty);
+    var invalid = _.values(attrs).filter(_.isEmpty).length > 0;
 
-    return empty.length > 0;
-  },
+    return invalid;
+  }
+};
 
-});
+var UserModel = Backbone.Model.extend(User);
 
-
-module.exports = new User();
+module.exports = new UserModel();

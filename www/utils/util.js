@@ -10,25 +10,23 @@ function DetectCordova(){
 };
 
 module.exports = {
-
-  sparse: function(el){
-    var sizeOfFather = el.offsetWidth;
-    var totalElements = el.childElementCount;
-    for(var index =0; index < totalElements; index++)
-      el.children[index].setAttribute('style', 'width:' + sizeOfFather/totalElements +'px;')
+  extendWithBackboneEvents: function(functor){
+    return functor.prototype = _.extend(functor.prototype, Backbone.Events);
   },
 
-  msg: function(title, message, cb, btns){
-    //msg
-  },
+  defer: function(){
+    var tmr = null;
+    return function(functor,  milliseconds){
 
-  saveInDB: function(key, obj){
-    localStorage.setItem(key, JSON.stringify(obj));
-  },
+      if(tmr === null)
+      clearTimeout(this.timer);
 
-  getFromDB: function(key){
-    return JSON.parse(localStorage.getItem(key));
-  },
+      this.timer = setTimeout(function(){
+        functor();
+        tmr = null;
+      }.bind(this), milliseconds);
+    }
+  }(),
 
   isCordovaEnable: DetectCordova()
 }

@@ -3,8 +3,11 @@
 var Backbone = require('backbone');
 var _ = require('underscore');
 var $ = require('jquery');
-var styles = require('../../style/login.css');
+
+var styles = require('../../style/form.css');
 var template = require('../../templates/login.html');
+var _log = require('../../utils/log')('Login');
+var util = require('../../utils/util');
 
 var Login = {
 
@@ -12,21 +15,32 @@ var Login = {
 
     events: {
         'keyup input': 'check',
-        'click .register': 'register'
+        'click .register': 'register',
+        'touchmove': 'ignore',
+    },
+
+    ignore: function(e){
+      e.preventDefault();
     },
 
     render: function() {
-        this.$el.html(template());
+      this.$el.html(template());
 
-        this.$user = this.$el.find('#user');
-        this.$phone = this.$el.find('#phone');
-        this.$register = this.$el.find('.register').prop('disabled', true);
+      this.$user = this.$el.find('#user');
+      this.$phone = this.$el.find('#phone');
+      this.$register = this.$el.find('.register').prop('disabled', true);
 
-        return this;
+      return this;
     },
 
     show: function() {
+      this.trigger('cover:show');
       this.$el.addClass('show');
+    },
+
+    close: function(){
+      this.trigger('cover:hide');
+      this.remove();
     },
 
     register: function(e){
