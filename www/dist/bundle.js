@@ -13796,7 +13796,7 @@
 	var BoardView = __webpack_require__(24);
 
 
-	var geolocationAPI = __webpack_require__(31);
+	var geolocationAPI = __webpack_require__(30);
 	var User = __webpack_require__(5);
 
 	var coverObserver = null;
@@ -13820,7 +13820,7 @@
 	            el: this.$body
 	        });
 
-	        coverObserver = __webpack_require__(35)(this.$wrapper);
+	        coverObserver = __webpack_require__(31)(this.$wrapper);
 
 	        geolocationAPI.on('geolocation:working', function() {
 	            this.update('Loading...');
@@ -28018,7 +28018,7 @@
 	var _ = __webpack_require__(2);
 	var $ = __webpack_require__(3);
 
-	var styles = __webpack_require__(36);
+	var styles = __webpack_require__(15);
 	var template = __webpack_require__(19);
 	var _log = __webpack_require__(6)('Login');
 	var util = __webpack_require__(10);
@@ -28075,8 +28075,43 @@
 
 
 /***/ },
-/* 15 */,
-/* 16 */,
+/* 15 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+
+	// load the styles
+	var content = __webpack_require__(16);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(18)(content, {});
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		module.hot.accept("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/form.css", function() {
+			var newContent = require("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/form.css");
+			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+			update(newContent);
+		});
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
+	}
+
+/***/ },
+/* 16 */
+/***/ function(module, exports, __webpack_require__) {
+
+	exports = module.exports = __webpack_require__(17)();
+	// imports
+
+
+	// module
+	exports.push([module.id, "\n\n.login-form {\n  height: 100%;\n  width: 100%;\n  z-index: 4;\n  position: absolute;\n  background: transparent;\n  top: 0px;\n  opacity: 0;\n  -webkit-transition: width, top, opacity 1s;\n}\n\n.form-wrapper {\n  margin-top: 60px;\n}\n\n.form-container {\n  position: relative;\n  width: 360px;\n  margin-right: auto;\n  margin-left: auto;\n  margin-top: 20px;\n}\n\n\n.box-form {\n  width: 86%;\n  margin-top: 10px;\n  margin-right: auto;\n  margin-left: auto;\n}\n\n\n.box-form > input {\n height: 40px;\n background: #495560;\n opacity: 0.8;\n color: white;\n text-transform: uppercase;\n border-style: none;\n}\n\n.box-form > p {\n  color: #333333;\n  font-family: Impact, Charcoal, sans-serif;\n  /*font-family: Impact, Charcoal, sans-serif;\n  font-family: Verdana, Geneva, sans-serif;\n  font-family: ‘Lucida Console’, Monaco, monospace;\n  font-family: ‘Trebuchet MS’, Helvetica, sans-serif; */\n}\n\n.login-form.show {\n  opacity: 1;\n}\n\n.box-form > .title {\n  text-align: center;\n  font-size: 59px;\n  color:white;\n}\n\n.icon-descriptor {\n    width: 87px;\n    position: absolute;\n    height: 70px;\n    float: left;\n    background-color: black;\n    border-radius: 2px;\n    opacity: 0.6;\n    left: 21px;\n}\n", ""]);
+
+	// exports
+
+
+/***/ },
 /* 17 */
 /***/ function(module, exports) {
 
@@ -28393,8 +28428,8 @@
 	// Hot Module Replacement
 	if(false) {
 		// When the styles change, update the <style> tags
-		module.hot.accept("!!/Users/cvaldez/Documents/devs/taxi/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/taxi/www/style/notify.css", function() {
-			var newContent = require("!!/Users/cvaldez/Documents/devs/taxi/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/taxi/www/style/notify.css");
+		module.hot.accept("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/notify.css", function() {
+			var newContent = require("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/notify.css");
 			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
 			update(newContent);
 		});
@@ -28434,7 +28469,7 @@
 	var util = __webpack_require__(10)
 
 	/* Load CSS */
-	__webpack_require__(38);
+	__webpack_require__(25);
 	__webpack_require__(27);
 
 	var svgBreadCrumbTmpl = __webpack_require__(29);
@@ -28475,8 +28510,43 @@
 
 
 /***/ },
-/* 25 */,
-/* 26 */,
+/* 25 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+
+	// load the styles
+	var content = __webpack_require__(26);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(18)(content, {});
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		module.hot.accept("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/board.css", function() {
+			var newContent = require("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/board.css");
+			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+			update(newContent);
+		});
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
+	}
+
+/***/ },
+/* 26 */
+/***/ function(module, exports, __webpack_require__) {
+
+	exports = module.exports = __webpack_require__(17)();
+	// imports
+
+
+	// module
+	exports.push([module.id, ".console {\n  position: absolute;\n  overflow: hidden;\n  top: 3%;\n  left: 3%;\n  width: 93%;\n  opacity: 0;\n  background-color: black;\n\n  margin-right: auto;\n  margin-left: auto;\n\n  height: 50px;\n\n\n  /*transition: opacity, color, height 0.75s ease-in-out;\n  -webkit-transition: opacity, color, height 0.75s ease-in-out;*/\n\n  transition: opacity .75s ease-in-out;\n  -webkit-transition: opacity .75s ease-in-out;\n\n  -webkit-box-shadow: 1px 1px 6px 2.4px #080808;\n  box-shadow: 1px 1px 6px 2.4px #080808;\n}\n\n.console.show {\n    opacity: 0.6;\n}\n\n.console > p.active {\n  color: white;\n}\n", ""]);
+
+	// exports
+
+
+/***/ },
 /* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -28490,8 +28560,8 @@
 	// Hot Module Replacement
 	if(false) {
 		// When the styles change, update the <style> tags
-		module.hot.accept("!!/Users/cvaldez/Documents/devs/taxi/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/taxi/www/style/breadcrumb.css", function() {
-			var newContent = require("!!/Users/cvaldez/Documents/devs/taxi/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/taxi/www/style/breadcrumb.css");
+		module.hot.accept("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/breadcrumb.css", function() {
+			var newContent = require("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/breadcrumb.css");
 			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
 			update(newContent);
 		});
@@ -28527,8 +28597,7 @@
 
 
 /***/ },
-/* 30 */,
-/* 31 */
+/* 30 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
@@ -28584,45 +28653,7 @@
 
 
 /***/ },
-/* 32 */,
-/* 33 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// style-loader: Adds some css to the DOM by adding a <style> tag
-
-	// load the styles
-	var content = __webpack_require__(34);
-	if(typeof content === 'string') content = [[module.id, content, '']];
-	// add the styles to the DOM
-	var update = __webpack_require__(18)(content, {});
-	// Hot Module Replacement
-	if(false) {
-		// When the styles change, update the <style> tags
-		module.hot.accept("!!/Users/cvaldez/Documents/devs/taxi/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/taxi/www/style/modal.css", function() {
-			var newContent = require("!!/Users/cvaldez/Documents/devs/taxi/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/taxi/www/style/modal.css");
-			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
-			update(newContent);
-		});
-		// When the module is disposed, remove the <style> tags
-		module.hot.dispose(function() { update(); });
-	}
-
-/***/ },
-/* 34 */
-/***/ function(module, exports, __webpack_require__) {
-
-	exports = module.exports = __webpack_require__(17)();
-	// imports
-
-
-	// module
-	exports.push([module.id, ".modal-demo.open {\n  height: 100%;\n  width: 100%;\n  z-index: 4;\n  background: black;\n  opacity: 0.5 !important;\n  border-radius: 0px !important;\n}\n\n.modal-demo {\n  border-radius: 100px;\n  opacity: 0;\n  top: 0px;\n  left: 0px;\n  position: absolute;\n -webkit-transition: width, top, border-radius, opacity 0.4s;\n}\n\n.blur-background {\n  filter: blur(3px);\n  -webkit-filter: blur(2px);\n  -moz-filter: blur(2px);\n  -o-filter: blur(2px);\n  -ms-filter: blur(2px);\n  opacity: 0.8;\n}\n", ""]);
-
-	// exports
-
-
-/***/ },
-/* 35 */
+/* 31 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -28633,7 +28664,7 @@
 	var $ = __webpack_require__(3);
 
 	var _log = __webpack_require__(6)('Modal');
-	var styles = __webpack_require__(33);
+	var styles = __webpack_require__(32);
 
 	var BLUR_STYLE = 'blur-background';
 	var OPEN_STYLE = "open";
@@ -28681,21 +28712,21 @@
 
 
 /***/ },
-/* 36 */
+/* 32 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(37);
+	var content = __webpack_require__(33);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
 	var update = __webpack_require__(18)(content, {});
 	// Hot Module Replacement
 	if(false) {
 		// When the styles change, update the <style> tags
-		module.hot.accept("!!/Users/cvaldez/Documents/devs/taxi/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/taxi/www/style/form.css", function() {
-			var newContent = require("!!/Users/cvaldez/Documents/devs/taxi/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/taxi/www/style/form.css");
+		module.hot.accept("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/modal.css", function() {
+			var newContent = require("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/modal.css");
 			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
 			update(newContent);
 		});
@@ -28704,7 +28735,7 @@
 	}
 
 /***/ },
-/* 37 */
+/* 33 */
 /***/ function(module, exports, __webpack_require__) {
 
 	exports = module.exports = __webpack_require__(17)();
@@ -28712,44 +28743,7 @@
 
 
 	// module
-	exports.push([module.id, "\n\n.login-form {\n  height: 100%;\n  width: 100%;\n  z-index: 4;\n  position: absolute;\n  background: transparent;\n  top: 0px;\n  opacity: 0;\n  -webkit-transition: width, top, opacity 1s;\n}\n\n.form-wrapper {\n  margin-top: 60px;\n}\n\n.form-container {\n  position: relative;\n  width: 360px;\n  margin-right: auto;\n  margin-left: auto;\n  margin-top: 20px;\n}\n\n\n.box-form {\n  width: 86%;\n  margin-top: 10px;\n  margin-right: auto;\n  margin-left: auto;\n}\n\n\n.box-form > input {\n height: 40px;\n background: #495560;\n opacity: 0.8;\n color: white;\n text-transform: uppercase;\n border-style: none;\n}\n\n.box-form > p {\n  color: #333333;\n  font-family: Impact, Charcoal, sans-serif;\n  /*font-family: Impact, Charcoal, sans-serif;\n  font-family: Verdana, Geneva, sans-serif;\n  font-family: ‘Lucida Console’, Monaco, monospace;\n  font-family: ‘Trebuchet MS’, Helvetica, sans-serif; */\n}\n\n.login-form.show {\n  opacity: 1;\n}\n\n.box-form > .title {\n  text-align: center;\n  font-size: 59px;\n  color:white;\n}\n\n.icon-descriptor {\n    width: 87px;\n    position: absolute;\n    height: 70px;\n    float: left;\n    background-color: black;\n    border-radius: 2px;\n    opacity: 0.6;\n    left: 21px;\n}\n", ""]);
-
-	// exports
-
-
-/***/ },
-/* 38 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// style-loader: Adds some css to the DOM by adding a <style> tag
-
-	// load the styles
-	var content = __webpack_require__(39);
-	if(typeof content === 'string') content = [[module.id, content, '']];
-	// add the styles to the DOM
-	var update = __webpack_require__(18)(content, {});
-	// Hot Module Replacement
-	if(false) {
-		// When the styles change, update the <style> tags
-		module.hot.accept("!!/Users/cvaldez/Documents/devs/taxi/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/taxi/www/style/board.css", function() {
-			var newContent = require("!!/Users/cvaldez/Documents/devs/taxi/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/taxi/www/style/board.css");
-			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
-			update(newContent);
-		});
-		// When the module is disposed, remove the <style> tags
-		module.hot.dispose(function() { update(); });
-	}
-
-/***/ },
-/* 39 */
-/***/ function(module, exports, __webpack_require__) {
-
-	exports = module.exports = __webpack_require__(17)();
-	// imports
-
-
-	// module
-	exports.push([module.id, ".console {\n  position: absolute;\n  overflow: hidden;\n  top: 3%;\n  left: 3%;\n  width: 93%;\n  opacity: 0;\n  background-color: black;\n\n  margin-right: auto;\n  margin-left: auto;\n\n  height: 50px;\n\n\n  /*transition: opacity, color, height 0.75s ease-in-out;\n  -webkit-transition: opacity, color, height 0.75s ease-in-out;*/\n\n  transition: opacity .75s ease-in-out;\n  -webkit-transition: opacity .75s ease-in-out;\n\n  -webkit-box-shadow: 1px 1px 6px 2.4px #080808;\n  box-shadow: 1px 1px 6px 2.4px #080808;\n}\n\n.console.show {\n    opacity: 0.6;\n}\n\n.console > p.active {\n  color: white;\n}\n", ""]);
+	exports.push([module.id, ".modal-demo.open {\n  height: 100%;\n  width: 100%;\n  z-index: 4;\n  background: black;\n  opacity: 0.5 !important;\n  border-radius: 0px !important;\n}\n\n.modal-demo {\n  border-radius: 100px;\n  opacity: 0;\n  top: 0px;\n  left: 0px;\n  position: absolute;\n -webkit-transition: width, top, border-radius, opacity 0.4s;\n}\n\n.blur-background {\n  filter: blur(3px);\n  -webkit-filter: blur(2px);\n  -moz-filter: blur(2px);\n  -o-filter: blur(2px);\n  -ms-filter: blur(2px);\n  opacity: 0.8;\n}\n", ""]);
 
 	// exports
 
