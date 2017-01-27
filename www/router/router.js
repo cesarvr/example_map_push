@@ -11,6 +11,7 @@ var Workflow = require('../api/workflow');
 // views
 var MapView = require('../view/map/map');
 var HomeView = require('../view/home/home');
+var MenuView = require('../view/menu/menu');
 var LoginView = require('../view/login/login');
 var NotificationView = require('../view/console/notification');
 var BoardView = require('../view/console/board');
@@ -29,16 +30,18 @@ var Router = Backbone.Router.extend({
 
     initialize: function() {
 
-        this.$body    = $('body');
+        this.$body = $('body');
         this.$wrapper = $('.site-wrapper');
 
         this.workflow = null;
 
-        this.notify   = new NotificationView();
+        this.notify = new NotificationView();
 
         this.homeView = new HomeView({
-            el: this.$body
+            el: this.$menu
         });
+
+        this.menuView = new MenuView();
 
         coverObserver = require('../view/modal/cover')(this.$wrapper);
 
@@ -52,7 +55,7 @@ var Router = Backbone.Router.extend({
         this.loginScreen(User);
     },
 
-    createNewModal: function(){
+    createNewModal: function() {
 
     },
 
@@ -63,9 +66,9 @@ var Router = Backbone.Router.extend({
 
         this.$body.append(login.render().el);
 
-        coverObserver(login)
+        coverObserver(login);
 
-        //user auth ditacte the behavior of the login.
+        //user auth dictate the behavior of the login.
         user.on('user:not_found', login.show, login);
         user.on('user:found', login.close, login);
     },
@@ -87,6 +90,7 @@ var Router = Backbone.Router.extend({
         this.mapView.loadAPI();
 
         this.mapView.on('map:ready', geolocationAPI.getLocation, geolocationAPI);
+        this.mapView.on('map:ready', this.$body.append(this.menuView.render().el));
         this.mapView.on('map:resolve:address', User.checkCredentials, User);
         this.mapView.on('map:resolve:address', this.mapView.setUserInfo);
 

@@ -13791,6 +13791,7 @@
 	// views
 	var MapView = __webpack_require__(11);
 	var HomeView = __webpack_require__(13);
+	var MenuView = __webpack_require__(34);
 	var LoginView = __webpack_require__(14);
 	var NotificationView = __webpack_require__(20);
 	var BoardView = __webpack_require__(24);
@@ -13809,16 +13810,18 @@
 
 	    initialize: function() {
 
-	        this.$body    = $('body');
+	        this.$body = $('body');
 	        this.$wrapper = $('.site-wrapper');
 
 	        this.workflow = null;
 
-	        this.notify   = new NotificationView();
+	        this.notify = new NotificationView();
 
 	        this.homeView = new HomeView({
-	            el: this.$body
+	            el: this.$menu
 	        });
+
+	        this.menuView = new MenuView();
 
 	        coverObserver = __webpack_require__(31)(this.$wrapper);
 
@@ -13832,7 +13835,7 @@
 	        this.loginScreen(User);
 	    },
 
-	    createNewModal: function(){
+	    createNewModal: function() {
 
 	    },
 
@@ -13843,9 +13846,9 @@
 
 	        this.$body.append(login.render().el);
 
-	        coverObserver(login)
+	        coverObserver(login);
 
-	        //user auth ditacte the behavior of the login.
+	        //user auth dictate the behavior of the login.
 	        user.on('user:not_found', login.show, login);
 	        user.on('user:found', login.close, login);
 	    },
@@ -13867,6 +13870,7 @@
 	        this.mapView.loadAPI();
 
 	        this.mapView.on('map:ready', geolocationAPI.getLocation, geolocationAPI);
+	        this.mapView.on('map:ready', this.$body.append(this.menuView.render().el));
 	        this.mapView.on('map:resolve:address', User.checkCredentials, User);
 	        this.mapView.on('map:resolve:address', this.mapView.setUserInfo);
 
@@ -28747,6 +28751,108 @@
 
 	// exports
 
+
+/***/ },
+/* 34 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var Backbone = __webpack_require__(1);
+	var _ = __webpack_require__(2);
+	var $ = __webpack_require__(3);
+
+	var styles = __webpack_require__(36);
+	var template = __webpack_require__(35);
+	var _log = __webpack_require__(6)('menu');
+
+	var Menu = {
+
+	    className: 'menu-container',
+
+	    events: {
+	        'click': 'toggleMenu'
+	    },
+
+	    initialize: function() {
+	    	// config element to slide here
+	    	// look at mediator pattern here
+	    	this.$map = $('.map');
+	    },
+
+	    render: function() {
+	        this.$el.html(template());
+
+	        return this;
+	    },
+
+	    toggleMenu: function() {
+	        _log('show menu');
+	        var direction = "left";
+	        var width = (this.$map.width()/100*83);
+	        this.$map.animate({ "left": width }, "slow" );
+	        this.$el.animate({ "left": width }, "slow" );
+	    }
+	};
+
+	module.exports = Backbone.View.extend(Menu);
+
+
+/***/ },
+/* 35 */
+/***/ function(module, exports) {
+
+	module.exports = function(obj){
+	var __t,__p='',__j=Array.prototype.join,print=function(){__p+=__j.call(arguments,'');};
+	with(obj||{}){
+	__p+='\n';
+	}
+	return __p;
+	};
+
+
+/***/ },
+/* 36 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+
+	// load the styles
+	var content = __webpack_require__(37);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(18)(content, {});
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		module.hot.accept("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/menu.css", function() {
+			var newContent = require("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/menu.css");
+			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+			update(newContent);
+		});
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
+	}
+
+/***/ },
+/* 37 */
+/***/ function(module, exports, __webpack_require__) {
+
+	exports = module.exports = __webpack_require__(17)();
+	// imports
+
+
+	// module
+	exports.push([module.id, ".menu-container {\n    position: fixed;\n    top: 3%;\n    left: 3%;\n    z-index: 1000;\n    background-color: transparent;\n    /*background-color: red;*/ \n    background-image: url(" + __webpack_require__(38) + ");\n    background-repeat: no-repeat;\n    background-size: 83% 83%;\n    background-position: center;\n    height: 60px;\n    width: 60px;\n}\n", ""]);
+
+	// exports
+
+
+/***/ },
+/* 38 */
+/***/ function(module, exports) {
+
+	module.exports = "dist/c800523f49b47cdc4ce9b41f50f6020c.svg";
 
 /***/ }
 /******/ ]);
