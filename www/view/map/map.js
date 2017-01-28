@@ -71,7 +71,7 @@ var MapView = {
         this.listenTo(geo, 'geolocation:position', this.setUserPosition);
         this.listenTo(geo, 'geolocation:position', this.getAddress);
 
-        this.on('map:ready', this.start);
+        this.on('map:api:downloaded', this.start);
     },
 
     /*
@@ -96,6 +96,8 @@ var MapView = {
         google.maps.event.addDomListener(this.$el[0], 'touchstart', this.onTouchStart.bind(this));
         google.maps.event.addDomListener(this.$el[0], 'touchend', this.onTouchEnd.bind(this));
 
+        this.trigger('map:created', this.map);
+
     },
 
     /*
@@ -103,7 +105,7 @@ var MapView = {
     */
     onTouchStart: function(){
       this.trigger('map:touch:start');
-      return true; // bubble up the touchstart event, means this don't freeze the UI.
+      return false; // bubble up the touchstart event, means this don't freeze the UI.
     },
 
     /*
@@ -111,18 +113,18 @@ var MapView = {
     */
     onTouchEnd: function(){
       this.trigger('map:touch:end');
-      return true; // bubble up the touchstart event, means this don't freeze the UI.
+      return false; // bubble up the touchstart event, means this don't freeze the UI.
     },
 
 
     /*
      * Download the Google Map API V3 async and start working, when the API is downloaded
-     * we trigger an map:ready event.
+     * we trigger an map:api:downloaded event.
      */
     loadAPI: function() {
 
         $script(this.GMAP_API, function() {
-            this.trigger('map:ready');
+            this.trigger('map:api:downloaded');
         }.bind(this));
 
         return this;
