@@ -17,7 +17,6 @@ var Markers = require('../view/map/marker');
 var HomeView = require('../view/home/home');
 var LoginView = require('../view/login/login');
 var NotificationView = require('../view/console/notification');
-var BoardView = require('../view/console/board');
 
 var driver = null,
     coverView =  null,
@@ -44,16 +43,28 @@ var Router = Backbone.Router.extend({
             this.update('Loading...');
         }, this.notify);
 
-        geolocationAPI.on('geolocation:position', this.notify.hide, this.notify);
+        this.notify.listenToOnce(geolocationAPI, 'geolocation:position', this.notify.hide);
         this.loginScreen(User);
+
+        this.$body.append(this.notify.el);
     },
 
     start: function(map){
       marker = new Markers(map);
       driver = new Driver(User);
 
-      driver.on('update:drivers', marker.update);
-      geolocationAPI.on('geolocation:position', driver.publishLocations);
+      driver.on('update:drivers',marker.update);
+      geolocationAPI.on('geolocation:position', marker.user);
+      /* function(driverList){
+        var user = User.get('user');
+        marker.update(driverList);
+        /*
+        marker.centerAt(user);
+        marker.setOrigin(user);
+
+      });*/
+
+      geolocationAPI.on('geolocation:position', driver.publishLocation);
       geolocationAPI.getLocation();
     },
 
@@ -63,7 +74,7 @@ var Router = Backbone.Router.extend({
         });
 
         this.$body.append(login.render().el);
-        coverView(login)
+        coverView(login);
 
         //user auth ditacte the behavior of the login.
         user.on('user:not_found', login.show, login);
@@ -72,20 +83,16 @@ var Router = Backbone.Router.extend({
 
     loadMap: function(user) {
 
-        this.$body.append(this.notify.el);
-
         this.mapView = new MapView({
             el: $('.map'),
             geolocationAPI: geolocationAPI
         });
-
 
         this.mapView.on('map:created', this.start);
         this.mapView.on('map:resolve:address', User.checkCredentials, User);
         this.mapView.on('map:resolve:address', this.mapView.setUserInfo);
 
         this.mapView.loadAPI();
-        BoardView(this.$body)(this.mapView);
     }
 });
 

@@ -10,8 +10,11 @@ var Driver = function(User){
   var self = this,
       cloud = socketIO(WEBSOCKET_URL);
 
+  /*
+    This method get call, each time there is a change in the cloud.
+  */
   function update(obj){
-    _log('updating from cloud-->' + obj);
+    _log('cloud updates' + obj);
     self.trigger('update:drivers', obj);
   }
 
@@ -20,7 +23,7 @@ var Driver = function(User){
   };
 
   this.publishLocation = function(location){
-    _log('publishing location: '+location);
+    _log('publishing location: '+ location);
     cloud.emit('update:location', _prepareRequest(location));
   };
 

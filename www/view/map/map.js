@@ -29,25 +29,7 @@ var MapView = {
         }
     }(),
 
-    setUserPosition: function(position) {
-        this.userMarker = this.singleton('Marker');
 
-        this.userMarker.setAnimation(google.maps.Animation.DROP);
-        this.userMarker.setPosition(position);
-        this.userMarker.setMap(this.map);
-    },
-
-    setUserInfo: function(info) {
-        var infoWindow = this.singleton('InfoWindow');
-
-        infoWindow.setContent($('<div class=\"info\"></div>').html(info).html());
-        infoWindow.open(this.map, this.userMarker);
-    },
-
-    center: function(position, zoom) {
-        this.map.setCenter(position);
-        this.map.setZoom(zoom || 15);
-    },
 
     /*  We need to inyect here a geolocation API, we listen for
      *  the following events:
@@ -67,8 +49,7 @@ var MapView = {
 
         var geo = options.geolocationAPI;
 
-        this.listenTo(geo, 'geolocation:position', this.center);
-        this.listenTo(geo, 'geolocation:position', this.setUserPosition);
+
         this.listenTo(geo, 'geolocation:position', this.getAddress);
 
         this.on('map:api:downloaded', this.start);
@@ -84,7 +65,7 @@ var MapView = {
         this.geocoder = new google.maps.Geocoder;
 
         this.map = new google.maps.Map(this.$el[0], {
-            zoom: 5,
+            zoom: 11,
             disableDefaultUI: true,
             gestureHandling: "greedy",
             center: {
