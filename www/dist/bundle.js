@@ -28771,13 +28771,24 @@
 	    className: 'menu-container',
 
 	    events: {
-	        'click': 'toggleMenu'
+	        'click .menu-button': 'toggleMenu',
+	        'click .menu-button': 'toggleMenu',
+	        'touchstart .menu-button': 'toggleButtonColor',
+	        'touchend .menu-button': 'toggleButtonColor',
+	        'swipe': 'toggleMenu'
 	    },
 
 	    initialize: function() {
-	    	// config element to slide here
-	    	// look at mediator pattern here
-	    	this.$map = $('.map');
+	        // config element to slide here
+	        this.$container = $('.map');
+
+	        this.options = {};
+	        this.width = (this.$container.width() / 100 * 83);
+	        this.visible = true;
+
+	        // config speed of slide and delay of sidemenu hide here
+	        this.speed = 200;
+	        this.hideSpeed = 300;
 	    },
 
 	    render: function() {
@@ -28788,10 +28799,39 @@
 
 	    toggleMenu: function() {
 	        _log('show menu');
-	        var direction = "left";
-	        var width = (this.$map.width()/100*83);
-	        this.$map.animate({ "left": width }, "slow" );
-	        this.$el.animate({ "left": width }, "slow" );
+
+	        var self = this;
+
+	        this.showHideSideMenu();
+
+	        self.options['left'] = this.width;
+
+	        this.$container.animate(self.options, self.speed, 'swing');
+	        this.$('.menu-button').animate(self.options, self.speed, 'swing');
+
+	        // toggle values
+	        this.width = this.width > 0 ? '0' : (this.$container.width() / 100 * 83);
+	    },
+
+	    showHideSideMenu: function() {
+	        var self = this;
+
+	        var showSideMenu = (this.visible === true) ? 'visible' : 'hidden';
+
+	        if (this.visible) {
+	            this.$('.side-menu').css('visibility', showSideMenu);
+	        } else {
+	            setTimeout(function() {
+	                self.$('.side-menu').css('visibility', showSideMenu);
+	            }, self.hideSpeed);
+	        }
+
+	        this.visible = !this.visible;
+	    },
+
+	    toggleButtonColor: function(evt) {
+	        var color = evt.type === 'touchstart' ? '#aaaaaa' : '#ffffff';
+	        this.$('#menu-button-svg').css('fill', color);
 	    }
 	};
 
@@ -28805,7 +28845,7 @@
 	module.exports = function(obj){
 	var __t,__p='',__j=Array.prototype.join,print=function(){__p+=__j.call(arguments,'');};
 	with(obj||{}){
-	__p+='\n';
+	__p+='<div class="menu-button">\n    <svg id="menu-button-svg" fill="#FFFFFF" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">\n        <path d="M0 0h24v24H0z" fill="none" />\n        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />\n    </svg>\n</div>\n<div class="side-menu">SIDE MENU HERE</div>\n';
 	}
 	return __p;
 	};
@@ -28843,16 +28883,10 @@
 
 
 	// module
-	exports.push([module.id, ".menu-container {\n    position: fixed;\n    top: 3%;\n    left: 3%;\n    z-index: 1000;\n    background-color: transparent;\n    /*background-color: red;*/ \n    background-image: url(" + __webpack_require__(38) + ");\n    background-repeat: no-repeat;\n    background-size: 83% 83%;\n    background-position: center;\n    height: 60px;\n    width: 60px;\n}\n", ""]);
+	exports.push([module.id, ".menu-button {\n    position: fixed;\n    top: 4px;\n    left: 3%;\n    z-index: 1000;\n    background-color: transparent;\n    height: 60px;\n    width: 60px;\n}\n\n#menu-button-svg {\n\theight: 82%;\n\twidth: 82%;\n\tmargin-top: 9%;\n\tmargin-left: 9%; \n}\n\n.side-menu {\n\tz-index: 2;\n\tposition: absolute;\n\tvisibility: hidden;\n    width: 83%;\n    background-color: #ffffff;\n    height: 100%;\n    top: 0;\n}\n", ""]);
 
 	// exports
 
-
-/***/ },
-/* 38 */
-/***/ function(module, exports) {
-
-	module.exports = "dist/c800523f49b47cdc4ce9b41f50f6020c.svg";
 
 /***/ }
 /******/ ]);

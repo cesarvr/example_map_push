@@ -1,14 +1,26 @@
-.menu-container {
+.menu-button {
     position: fixed;
-    top: 3%;
+    top: 4px;
     left: 3%;
     z-index: 1000;
     background-color: transparent;
-    /*background-color: red;*/ 
-    background-image: url("../assets/ic_menu_white_24px.svg");
-    background-repeat: no-repeat;
-    background-size: 83% 83%;
-    background-position: center;
     height: 60px;
     width: 60px;
+}
+
+#menu-button-svg {
+	height: 82%;
+	width: 82%;
+	margin-top: 9%;
+	margin-left: 9%; 
+}
+
+.side-menu {
+	z-index: 2;
+	position: absolute;
+	visibility: hidden;
+    width: 83%;
+    background-color: #ffffff;
+    height: 100%;
+    top: 0;
 }
