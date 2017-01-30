@@ -27769,7 +27769,7 @@
 	     */
 
 	    initialize: function(options) {
-	        if (_.isEmpty(options.geolocationAPI)) throw "Not geolocationAPI Inyected";
+	        if (_.isEmpty(options.geolocationAPI)) throw "Not geolocationAPI Injected";
 
 	        var geo = options.geolocationAPI;
 
@@ -28922,7 +28922,7 @@
 
 
 	// module
-	exports.push([module.id, ".menu-button {\n    position: fixed;\n    top: 4px;\n    left: 3%;\n    z-index: 1000;\n    background-color: transparent;\n    height: 60px;\n    width: 60px;\n}\n\n#menu-button-svg {\n    height: 82%;\n    width: 82%;\n    margin-top: 9%;\n    margin-left: 9%;\n}\n\n.side-menu {\n    z-index: 1;\n    position: absolute;\n    width: 83%;\n    background-color: #ffffff;\n    height: 100%;\n    top: 0;\n}\n\n.menu-list-item {\n    height: 60px;\n    padding-top: 16px;\n    padding-bottom: 15px;\n    padding-left: 20px;\n    color: #158BBB;\n    border-bottom: 1px solid #eeeeee;\n    font-size: 18px;\n}", ""]);
+	exports.push([module.id, ".menu-button {\n    position: fixed;\n    top: 4px;\n    left: 3%;\n    z-index: 1000;\n    background-color: transparent;\n    height: 60px;\n    width: 60px;\n}\n\n#menu-button-svg {\n    height: 82%;\n    width: 82%;\n    margin-top: 9%;\n    margin-left: 9%;\n}\n\n.side-menu {\n    z-index: 1;\n    position: absolute;\n    height: 100%;\n    width: 83%;\n    background-color: #ffffff;\n    height: 100%;\n    top: 0;\n}\n\n.menu-list-item {\n    height: 60px;\n    padding-top: 16px;\n    padding-bottom: 15px;\n    padding-left: 20px;\n    background-color: #50bbe6;\n    color: #ffffff;\n    border-bottom: 1px solid #ffffff;\n    font-size: 18px;\n}", ""]);
 
 	// exports
 

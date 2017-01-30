@@ -18,6 +18,7 @@
 .side-menu {
     z-index: 1;
     position: absolute;
+    height: 100%;
     width: 83%;
     background-color: #ffffff;
     height: 100%;
@@ -29,7 +30,8 @@
     padding-top: 16px;
     padding-bottom: 15px;
     padding-left: 20px;
-    color: #158BBB;
-    border-bottom: 1px solid #eeeeee;
+    background-color: #50bbe6;
+    color: #ffffff;
+    border-bottom: 1px solid #ffffff;
     font-size: 18px;
 }

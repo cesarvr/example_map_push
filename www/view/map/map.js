@@ -63,7 +63,7 @@ var MapView = {
      */
 
     initialize: function(options) {
-        if (_.isEmpty(options.geolocationAPI)) throw "Not geolocationAPI Inyected";
+        if (_.isEmpty(options.geolocationAPI)) throw "Not geolocationAPI Injected";
 
         var geo = options.geolocationAPI;
 
