@@ -9,18 +9,27 @@
 }
 
 #menu-button-svg {
-	height: 82%;
-	width: 82%;
-	margin-top: 9%;
-	margin-left: 9%; 
+    height: 82%;
+    width: 82%;
+    margin-top: 9%;
+    margin-left: 9%;
 }
 
 .side-menu {
-	z-index: 2;
-	position: absolute;
-	visibility: hidden;
+    z-index: 1;
+    position: absolute;
     width: 83%;
     background-color: #ffffff;
     height: 100%;
     top: 0;
+}
+
+.menu-list-item {
+    height: 60px;
+    padding-top: 16px;
+    padding-bottom: 15px;
+    padding-left: 20px;
+    color: #aaaaaa;
+    border-bottom: 1px solid #eeeeee;
+    font-size: 18px;
 }

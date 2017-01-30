@@ -15,9 +15,10 @@ var Menu = {
     events: {
         'click .menu-button': 'toggleMenu',
         'click .menu-button': 'toggleMenu',
+        'click .side-menu': 'openLink',
         'touchstart .menu-button': 'toggleButtonColor',
         'touchend .menu-button': 'toggleButtonColor',
-        'swipe': 'toggleMenu'
+        'swipe': 'swipeTest'
     },
 
     initialize: function() {
@@ -27,11 +28,16 @@ var Menu = {
         this.options = {};
         this.width = (this.$container.width() / 100 * 83);
         this.visible = true;
+        this.blur = true;
 
         // config speed of slide and delay of sidemenu hide here
         this.speed = 200;
-        this.hideSpeed = 300;
+        // this.hideSpeed = 300;
     },
+
+    // *********************************************************************************************************************************************
+    // TODO ANIMATION, SWIPE, FADE MAP
+    // *********************************************************************************************************************************************
 
     render: function() {
         this.$el.html(template());
@@ -39,23 +45,56 @@ var Menu = {
         return this;
     },
 
+    hide: function() {
+    	this.$('.menu-button').hide();
+    },
+
+    show: function() {
+    	this.$('.menu-button').show();
+    },
+
+    swipeTest: function(e) {
+    	e.preventDefault();
+    	console.log('kjdfgkjdfgkjdfkjgdkfj');
+    },
+
+    openLink: function() {
+        console.log('boom');
+    },
+
     toggleMenu: function() {
         _log('show menu');
 
         var self = this;
 
-        this.showHideSideMenu();
+        /*this.showHideSideMenu();*/
 
         self.options['left'] = this.width;
 
-        this.$container.animate(self.options, self.speed, 'swing');
         this.$('.menu-button').animate(self.options, self.speed, 'swing');
+        this.$container.animate(self.options, self.speed, 'swing');
+
+        this.toggleZIndexes();
+        this.toggleBlur();
 
         // toggle values
         this.width = this.width > 0 ? '0' : (this.$container.width() / 100 * 83);
     },
 
-    showHideSideMenu: function() {
+    toggleZIndexes: function() {
+    	var mapValue = $('.site-wrapper').css('z-index');
+    	var sideMenuValue = $('.side-menu').css('z-index');
+
+    	$('.site-wrapper').css('z-index', sideMenuValue);
+    	$('.side-menu').css('z-index', mapValue);
+    },
+
+    toggleBlur: function() {
+    	this.blur ? $('.site-wrapper').css('filter', 'blur(5px)') : $('.site-wrapper').css('filter', 'none');
+    	this.blur = !this.blur;
+    }, 
+
+    /*showHideSideMenu: function() {
         var self = this;
 
         var showSideMenu = (this.visible === true) ? 'visible' : 'hidden';
@@ -69,7 +108,7 @@ var Menu = {
         }
 
         this.visible = !this.visible;
-    },
+    },*/
 
     toggleButtonColor: function(evt) {
         var color = evt.type === 'touchstart' ? '#aaaaaa' : '#ffffff';
