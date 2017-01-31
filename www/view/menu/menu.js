@@ -15,10 +15,8 @@ var Menu = {
     events: {
         'click .menu-button': 'toggleMenu',
         'click .menu-button': 'toggleMenu',
-        'click .side-menu': 'openLink',
         'touchstart .menu-button': 'toggleButtonColor',
-        'touchend .menu-button': 'toggleButtonColor',
-        'swipe': 'swipeTest'
+        'touchend .menu-button': 'toggleButtonColor'
     },
 
     initialize: function() {
@@ -29,15 +27,7 @@ var Menu = {
         this.width = (this.$container.width() / 100 * 83);
         this.visible = true;
         this.blur = true;
-
-        // config speed of slide and delay of sidemenu hide here
-        this.speed = 200;
-        // this.hideSpeed = 300;
     },
-
-    // *********************************************************************************************************************************************
-    // TODO ANIMATION, SWIPE, FADE MAP
-    // *********************************************************************************************************************************************
 
     render: function() {
         this.$el.html(template());
@@ -53,11 +43,6 @@ var Menu = {
     	this.$('.menu-button').show();
     },
 
-    swipeTest: function(e) {
-    	e.preventDefault();
-    	console.log('kjdfgkjdfgkjdfkjgdkfj');
-    },
-
     openLink: function() {
         console.log('boom');
     },
@@ -66,8 +51,6 @@ var Menu = {
         _log('show menu');
 
         var self = this;
-
-        /*this.showHideSideMenu();*/
 
         self.options['left'] = this.width;
 
@@ -93,22 +76,6 @@ var Menu = {
     	this.blur ? $('.site-wrapper').css('filter', 'blur(5px)') : $('.site-wrapper').css('filter', 'none');
     	this.blur = !this.blur;
     }, 
-
-    /*showHideSideMenu: function() {
-        var self = this;
-
-        var showSideMenu = (this.visible === true) ? 'visible' : 'hidden';
-
-        if (this.visible) {
-            this.$('.side-menu').css('visibility', showSideMenu);
-        } else {
-            setTimeout(function() {
-                self.$('.side-menu').css('visibility', showSideMenu);
-            }, self.hideSpeed);
-        }
-
-        this.visible = !this.visible;
-    },*/
 
     toggleButtonColor: function(evt) {
         var color = evt.type === 'touchstart' ? '#aaaaaa' : '#ffffff';
