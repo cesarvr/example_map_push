@@ -3,6 +3,7 @@
 var Backbone = require('backbone');
 var _ = require('underscore');
 var $ = require('jquery');
+var Hammer = require('../../lib/hammer');
 
 var styles = require('../../style/menu.css');
 var template = require('../../templates/menu.html');
@@ -16,7 +17,8 @@ var Menu = {
         'click .menu-button': 'toggleMenu',
         'click .menu-button': 'toggleMenu',
         'touchstart .menu-button': 'toggleButtonColor',
-        'touchend .menu-button': 'toggleButtonColor'
+        'touchend .menu-button': 'toggleButtonColor',
+        'swipe': 'swipeHandler'
     },
 
     initialize: function() {
@@ -27,6 +29,12 @@ var Menu = {
         this.width = (this.$container.width() / 100 * 83);
         this.visible = true;
         this.blur = true;
+
+        this.mc = new Hammer($.el);
+        this.mc.enable(false);
+
+        // config speed of slide
+        this.speed = 200;
     },
 
     render: function() {
@@ -36,11 +44,11 @@ var Menu = {
     },
 
     hide: function() {
-    	this.$('.menu-button').hide();
+        this.$('.menu-button').hide();
     },
 
     show: function() {
-    	this.$('.menu-button').show();
+        this.$('.menu-button').show();
     },
 
     openLink: function() {
@@ -59,23 +67,30 @@ var Menu = {
 
         this.toggleZIndexes();
         this.toggleBlur();
+        this.toggleSwipe();
 
         // toggle values
         this.width = this.width > 0 ? '0' : (this.$container.width() / 100 * 83);
     },
 
-    toggleZIndexes: function() {
-    	var mapValue = $('.site-wrapper').css('z-index');
-    	var sideMenuValue = $('.side-menu').css('z-index');
+    swipeHandler: function() {
+    	console.log('we are swiping');
+        this.mc.enable(this.visible);
+    },
 
-    	$('.site-wrapper').css('z-index', sideMenuValue);
-    	$('.side-menu').css('z-index', mapValue);
+    // to allow menu interaction
+    toggleZIndexes: function() {
+        var mapValue = $('.site-wrapper').css('z-index');
+        var sideMenuValue = $('.side-menu').css('z-index');
+
+        $('.site-wrapper').css('z-index', sideMenuValue);
+        $('.side-menu').css('z-index', mapValue);
     },
 
     toggleBlur: function() {
-    	this.blur ? $('.site-wrapper').css('filter', 'blur(5px)') : $('.site-wrapper').css('filter', 'none');
-    	this.blur = !this.blur;
-    }, 
+        this.blur ? $('.site-wrapper').css('filter', 'blur(5px)') : $('.site-wrapper').css('filter', 'none');
+        this.blur = !this.blur;
+    },
 
     toggleButtonColor: function(evt) {
         var color = evt.type === 'touchstart' ? '#aaaaaa' : '#ffffff';
