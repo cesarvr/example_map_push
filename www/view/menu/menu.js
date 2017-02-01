@@ -5,9 +5,9 @@ var _ = require('underscore');
 var $ = require('jquery');
 
 var styles = require('../../style/menu.css');
+var button = require('../../templates/menu-button.html');
 var template = require('../../templates/menu.html');
 var _log = require('../../utils/log')('menu');
-var Snap = require('../../lib/snap');
 
 var Menu = {
 
@@ -20,7 +20,7 @@ var Menu = {
         'touchend .menu-button': 'toggleButtonColor'
     },
 
-    // TODO - close blur etc on swipe close, tap to close...
+    // TODO - close blur etc on swipe close, tap to close, animate button
 
     initialize: function(options) {
         var self = this;
@@ -33,40 +33,29 @@ var Menu = {
         // change menu button to this color on touch
         this.buttonFocusColor = '#555555';
 
+        this.options = {};
         this.width = (this.$mainContainer.width() / 100 * 83);
         this.blur = true;
-        this.menuShow = true;
+        this.menuOpen = true;
 
-        /*this.snapper = new Snap({
-            element: this.$mainContainer[0],
-            maxPosition: this.width,
-            minPosition: this.width
-        });
-
-        this.snapper.on('open', function() {
-            self.toggleBlur();
-            self.menuShow = !self.menuShow;
-        });
-
-        this.snapper.on('close', function() {
-            self.toggleBlur();
-            self.menuShow = !self.menuShow;
-        });*/
-
-        /*this.snapper.on('drag', function() {
-            self.snapper.close();
-        });*/
-
-        this.$menuButton.on('click', this.toggleMenu.bind(this));
-        //$('.menu-open').on('touchstart', this.toggleMenu.bind(this));
-        this.$menuButton.on('touchstart', this.toggleButtonColor.bind(this));
-        this.$menuButton.on('touchend', this.toggleButtonColor.bind(this));
+        // config speed of slide, blur value
+        this.speed = 5;
+        this.blurValue = 5;
     },
 
     render: function() {
         this.$el.html(template());
+        this.$mainContainer.append(this.createMenu());
 
         return this;
+    },
+
+    createMenu: function() {
+        return $('<div>').addClass('menu-button')
+            .append(button())
+            .on('click', this.toggleMenu.bind(this))
+            .on('touchstart', this.toggleButtonColor.bind(this))
+            .on('touchend', this.toggleButtonColor.bind(this));
     },
 
     hide: function() {
@@ -82,18 +71,31 @@ var Menu = {
     },
 
     toggleMenu: function() {
-        // only show menu, snap.js handles close itself
-        if (this.menuShow) {
-            this.$menuButton.addClass('menu-open');
-            this.snapper.open('left');
-        } else {
-            this.$menuButton.removeClass('menu-open');
-            this.snapper.close();
-        }
+        var self = this;
+
+        this.$mainContainer.css({
+            '-webkit-transform': 'translateX(' + self.width + 'px)',
+            '-moz-transform': 'translateX(' + self.width + 'px)',
+            '-ms-transform': 'translateX(' + self.width + 'px)',
+            '-o-transform': 'translateX(' + self.width + 'px)',
+            'transform': 'translateX(' + self.width + 'px)'
+        });
+
+        this.toggleBlur();
+        //this.toggleListener();
+
+        // toggle width values
+        this.width = this.width > 0 ? 0 : (this.$mainContainer.width() / 100 * 83);    
+    },
+
+    toggleListener: function() {
+    	// toggle listener to close
+        this.menuOpen ? this.$mainContainer.on('click', this.toggleMenu.bind(this)) : this.$mainContainer.off('click', this.toggleMenu.bind(this));
+        this.menuOpen = !this.menuOpen;
     },
 
     toggleBlur: function() {
-        this.blur ? this.$blurElement.css('filter', 'blur(5px)') : this.$blurElement.css('filter', 'none');
+        this.blur ? this.$blurElement.css('filter', 'blur(' + this.blurValue + 'px)') : this.$blurElement.css('filter', 'none');
         this.blur = !this.blur;
     },
 
