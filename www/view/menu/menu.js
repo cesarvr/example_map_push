@@ -3,7 +3,6 @@
 var Backbone = require('backbone');
 var _ = require('underscore');
 var $ = require('jquery');
-var Hammer = require('../../lib/hammer');
 
 var styles = require('../../style/menu.css');
 var template = require('../../templates/menu.html');
@@ -15,10 +14,8 @@ var Menu = {
 
     events: {
         'click .menu-button': 'toggleMenu',
-        'click .menu-button': 'toggleMenu',
         'touchstart .menu-button': 'toggleButtonColor',
-        'touchend .menu-button': 'toggleButtonColor',
-        'swipe': 'swipeHandler'
+        'touchend .menu-button': 'toggleButtonColor'
     },
 
     initialize: function() {
@@ -29,9 +26,6 @@ var Menu = {
         this.width = (this.$container.width() / 100 * 83);
         this.visible = true;
         this.blur = true;
-
-        this.mc = new Hammer($.el);
-        this.mc.enable(false);
 
         // config speed of slide
         this.speed = 200;
@@ -67,15 +61,9 @@ var Menu = {
 
         this.toggleZIndexes();
         this.toggleBlur();
-        this.toggleSwipe();
 
         // toggle values
         this.width = this.width > 0 ? '0' : (this.$container.width() / 100 * 83);
-    },
-
-    swipeHandler: function() {
-    	console.log('we are swiping');
-        this.mc.enable(this.visible);
     },
 
     // to allow menu interaction
