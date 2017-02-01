@@ -32,6 +32,8 @@ var Router = Backbone.Router.extend({
 
         this.$body = $('body');
         this.$wrapper = $('.site-wrapper');
+        this.$menuButton = $('.menu-button');
+        this.$blurElement = $('.map');
 
         this.workflow = null;
 
@@ -41,7 +43,12 @@ var Router = Backbone.Router.extend({
             el: this.$menu
         });
 
-        this.menuView = new MenuView();
+        // load menu view specifying the element to slide, menu button element & optional element to blur
+        this.menuView = new MenuView({
+            mainContainer: this.$wrapper,
+            menuButton: this.$menuButton,
+            blurElement: this.$blurElement
+        });
 
         coverObserver = require('../view/modal/cover')(this.$wrapper);
 

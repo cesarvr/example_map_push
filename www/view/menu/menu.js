@@ -7,6 +7,7 @@ var $ = require('jquery');
 var styles = require('../../style/menu.css');
 var template = require('../../templates/menu.html');
 var _log = require('../../utils/log')('menu');
+var Snap = require('../../lib/snap');
 
 var Menu = {
 
@@ -14,21 +15,52 @@ var Menu = {
 
     events: {
         'click .menu-button': 'toggleMenu',
+        'click .side-menu': 'openLink',
         'touchstart .menu-button': 'toggleButtonColor',
         'touchend .menu-button': 'toggleButtonColor'
     },
 
-    initialize: function() {
-        // config element to slide here
-        this.$container = $('.map');
+    // TODO - close blur etc on swipe close, tap to close...
 
-        this.options = {};
-        this.width = (this.$container.width() / 100 * 83);
-        this.visible = true;
+    initialize: function(options) {
+        var self = this;
+
+        // element to slide, menu button, element to blur on drawer open
+        this.$mainContainer = options.mainContainer;
+        this.$menuButton = options.menuButton;
+        this.$blurElement = options.blurElement;
+
+        // change menu button to this color on touch
+        this.buttonFocusColor = '#555555';
+
+        this.width = (this.$mainContainer.width() / 100 * 83);
         this.blur = true;
+        this.menuShow = true;
 
-        // config speed of slide
-        this.speed = 200;
+        /*this.snapper = new Snap({
+            element: this.$mainContainer[0],
+            maxPosition: this.width,
+            minPosition: this.width
+        });
+
+        this.snapper.on('open', function() {
+            self.toggleBlur();
+            self.menuShow = !self.menuShow;
+        });
+
+        this.snapper.on('close', function() {
+            self.toggleBlur();
+            self.menuShow = !self.menuShow;
+        });*/
+
+        /*this.snapper.on('drag', function() {
+            self.snapper.close();
+        });*/
+
+        this.$menuButton.on('click', this.toggleMenu.bind(this));
+        //$('.menu-open').on('touchstart', this.toggleMenu.bind(this));
+        this.$menuButton.on('touchstart', this.toggleButtonColor.bind(this));
+        this.$menuButton.on('touchend', this.toggleButtonColor.bind(this));
     },
 
     render: function() {
@@ -38,11 +70,11 @@ var Menu = {
     },
 
     hide: function() {
-        this.$('.menu-button').hide();
+        $('.menu-button').hide();
     },
 
     show: function() {
-        this.$('.menu-button').show();
+        $('.menu-button').show();
     },
 
     openLink: function() {
@@ -50,39 +82,24 @@ var Menu = {
     },
 
     toggleMenu: function() {
-        _log('show menu');
-
-        var self = this;
-
-        self.options['left'] = this.width;
-
-        this.$('.menu-button').animate(self.options, self.speed, 'swing');
-        this.$container.animate(self.options, self.speed, 'swing');
-
-        this.toggleZIndexes();
-        this.toggleBlur();
-
-        // toggle values
-        this.width = this.width > 0 ? '0' : (this.$container.width() / 100 * 83);
-    },
-
-    // to allow menu interaction
-    toggleZIndexes: function() {
-        var mapValue = $('.site-wrapper').css('z-index');
-        var sideMenuValue = $('.side-menu').css('z-index');
-
-        $('.site-wrapper').css('z-index', sideMenuValue);
-        $('.side-menu').css('z-index', mapValue);
+        // only show menu, snap.js handles close itself
+        if (this.menuShow) {
+            this.$menuButton.addClass('menu-open');
+            this.snapper.open('left');
+        } else {
+            this.$menuButton.removeClass('menu-open');
+            this.snapper.close();
+        }
     },
 
     toggleBlur: function() {
-        this.blur ? $('.site-wrapper').css('filter', 'blur(5px)') : $('.site-wrapper').css('filter', 'none');
+        this.blur ? this.$blurElement.css('filter', 'blur(5px)') : this.$blurElement.css('filter', 'none');
         this.blur = !this.blur;
     },
 
     toggleButtonColor: function(evt) {
-        var color = evt.type === 'touchstart' ? '#aaaaaa' : '#ffffff';
-        this.$('#menu-button-svg').css('fill', color);
+        var color = evt.type === 'touchstart' ? this.buttonFocusColor : '#ffffff';
+        $('#menu-button-svg').css('fill', color);
     }
 };
 
