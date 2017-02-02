@@ -6,89 +6,83 @@ var appendEvents = require('../../utils/factory');
 var _log = require('../../utils/log')('Marker');
 
 var cache = {};
-var MapMarkers = function(Map){
+var userMark = {};
+var InfoView = null;
 
-  function copyPosition(p1, p2){
-    p1.position = p2.position;
-  }
+var MapMarkers = function(Map, _InfoView) {
 
-  function showUserInfo(driverName){
-    var driver = cache[driverName];
-    var infoWindow = getInstance(driverName, 'InfoWindow');
+    InfoView = _InfoView || _.identity;
 
-    infoWindow.setContent($('<div class=\"info\"></div>').html(driverName).html());
-    infoWindow.open(Map, driver.Marker);
-  };
+    //Remove the user from this device from the tracking list.
+    function removeUser(User, data) {
+        var userName = User.get('user');
 
-  function getInstance(key, objName){
-    if(!cache[key].hasOwnProperty(objName)){
-      cache[key][objName] = new google.maps[objName]();
-      return cache[key][objName];
-    }else
-      return cache[key][objName];
-  };
+        if (!_.isUndefined(data[userName])) {
+            delete data[userName];
+        }
 
-  function drawAll(){
-    Object.keys(cache).forEach(function(key){
-      addMarkers(key, cache[key]);
-      showUserInfo(key);
-    },this);
-  };
+        return data;
+    };
 
-  function addMarkers(key, mark){
-     _log('marking -> ' + key);
+    function createDriversMarker(memo, data, driverName) {
+        console.log('data->', data);
 
-     var marker = new google.maps.Marker();
-     marker.setAnimation(google.maps.Animation.DROP);
-     marker.setPosition(mark.position);
-     marker.setMap(Map);
+        memo[driverName] = {
+            data: {
+                position: data,
+                marker: createMark(data.position)
+            }
+        };
 
-     return marker;
-  };
+        return memo;
+    };
 
+    function createMark(position) {
+        var marker = new google.maps.Marker();
 
-  function diffUpdate(drivers){
-    for(var key in drivers) {
-      if( !_.isEqual(drivers[key].position, cache[key].position) ){
-        copyPosition(cache[key], drivers[key]);
-        addMarkers(key, drivers[key]);
-      }
-    }
-  };
+        marker.setAnimation(google.maps.Animation.DROP);
+        marker.setPosition(position);
+        marker.setMap(Map);
 
-  this.setOrigin = function(driverName){
-    _log('setting:origin -> '+ driverName);
-    var driver = cache[driverName];
-    driver.Marker.setIcon(require("../../assets/user_1.svg"));
-  };
+        return marker;
+    };
 
+    this.setOrigin = function(driverName) {
+        _log('setting:origin -> ' + driverName);
+        var driver = cache[driverName];
+    };
 
-  this.centerAt = function(driverName, zoom){
-    _log('centering -> '+ driverName);
-    var driver = cache[driverName];
-    Map.setCenter(driver.position);
-  };
+    this.markDriversInMap = function(user, drivers) {
+        var _drivers = removeUser(user, drivers);
+        cache = _.reduce(_drivers, createDriversMarker, {});
+    };
 
+    this.markUserInMap = function(user, position) {
 
-  this.user = function(username, position){
-    cache[username] = addMarkers
-  }
+        userMark.marker = createMark(position);
+        userMark.userInfo = user;
 
+        Map.setCenter(position);
 
+        userMark
+            .marker
+            .setIcon(require("../../assets/user_1.svg"));
 
-  this.update = function(drivers){
+        userMark.infoWindow =  new InfoView({
+          user: user, 
+          marker: userMark.marker
+        })
 
-    if(_.isEmpty(cache)){
-      cache = drivers;
-      drawAll();
-    }else{
-      diffUpdate(drivers);
-    }
-  };
+        userMark.infoWindow.updateAddress();
+    };
 
+    this.getMap = function() {
+        return Map;
+    };
 
-
-
+    this.update = function(drivers) {
+        _log('cloud update [drivers] ->' + JSON.stringify(drivers));
+    };
 };
 
 module.exports = appendEvents(MapMarkers);

@@ -1,0 +1,11 @@
+.infoview {
+  margin-top: 10px;
+  height: 180px;
+}
+
+.infoview-field {
+  height: 20px;
+  font-size: 16px;
+  margin: 12px;
+}
+

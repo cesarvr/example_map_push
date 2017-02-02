@@ -12,24 +12,6 @@ var MapView = {
 
     GMAP_API: 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDoez83-bCpLCFESHMiNpfkBrplOV36Hbs',
 
-    // Sometimes you just want the same instance, to avoid duplication and Heap memory bloat.
-    singleton: function() {
-        var cachedInstances = {};
-
-        return function(name) {
-            var instance = null;
-
-            if (_.isUndefined(cachedInstances[name]))
-                instance = new google.maps[name];
-            else
-              return cachedInstances[name];
-
-            cachedInstances[name] = instance;
-            return instance;
-        }
-    }(),
-
-
 
     /*  We need to inyect here a geolocation API, we listen for
      *  the following events:

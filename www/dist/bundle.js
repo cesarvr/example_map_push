@@ -13781,25 +13781,28 @@
 	'use strict';
 	var Backbone = __webpack_require__(1);
 	var $ = __webpack_require__(3);
+	var _ = __webpack_require__(2);
 
 	//API's
 	var Workflow = __webpack_require__(5);
 	var Driver = __webpack_require__(9);
-	var geolocationAPI = __webpack_require__(62);
+	var geolocationAPI = __webpack_require__(66);
 
 	//model
-	var User = __webpack_require__(63);
+	var User = __webpack_require__(67);
 
 	// views
-	var MapView = __webpack_require__(64);
-	var Markers = __webpack_require__(66);
-
 	var HomeView = __webpack_require__(68);
 	var LoginView = __webpack_require__(69);
 	var NotificationView = __webpack_require__(75);
 
+	// map views 
+	var MapView = __webpack_require__(79);
+	var InfoView = __webpack_require__(81);
+	var Markers = __webpack_require__(85);
+
 	var driver = null,
-	    coverView =  null,
+	    coverView = null,
 	    marker = null;
 
 	var Router = Backbone.Router.extend({
@@ -13809,43 +13812,51 @@
 	    },
 
 	    initialize: function() {
-	        this.$body    = $('body');
+	        this.$body = $('body');
 	        this.$wrapper = $('.site-wrapper');
 	        this.workflow = null;
-	        this.notify   = new NotificationView();
+	        this.notify = new NotificationView();
 	        this.homeView = new HomeView({
 	            el: this.$body
 	        });
 
-	        coverView = __webpack_require__(79)(this.$wrapper);
+	        coverView = __webpack_require__(87)(this.$wrapper);
 
 	        geolocationAPI.on('geolocation:working', function() {
-	            this.update('Loading...');
+	            this.update('Loading, please be patient.');
 	        }, this.notify);
 
 	        this.notify.listenToOnce(geolocationAPI, 'geolocation:position', this.notify.hide);
-	        this.loginScreen(User);
 
+	        this.loginScreen(User);
 	        this.$body.append(this.notify.el);
 	    },
 
-	    start: function(map){
-	      marker = new Markers(map);
-	      driver = new Driver(User);
+	    start: function(marker, driver) {
 
-	      driver.on('update:drivers',marker.update);
-	      geolocationAPI.on('geolocation:position', marker.user);
-	      /* function(driverList){
-	        var user = User.get('user');
-	        marker.update(driverList);
-	        /*
-	        marker.centerAt(user);
-	        marker.setOrigin(user);
+	        marker.listenTo(driver,
+	            'update:drivers',
+	            _.partial(marker.markDriversInMap, User));
 
-	      });*/
+	        marker.listenToOnce(geolocationAPI,
+	            'geolocation:position',
+	            _.partial(marker.markUserInMap, User));
 
-	      geolocationAPI.on('geolocation:position', driver.publishLocation);
-	      geolocationAPI.getLocation();
+	        geolocationAPI.on('geolocation:position', driver.publishLocation);
+
+	        geolocationAPI.getLocation();
+	        driver.getDriverStatus();
+	    },
+
+	    initMapAPI: function(user, map) {
+	        marker = new Markers(map, InfoView);
+	        driver = new Driver(User);
+
+	        user.on('user:found', function(){
+	          this.start(marker, driver);
+	        }, this);
+
+	        user.checkCredentials();
 	    },
 
 	    loginScreen: function(user) {
@@ -13868,9 +13879,7 @@
 	            geolocationAPI: geolocationAPI
 	        });
 
-	        this.mapView.on('map:created', this.start);
-	        this.mapView.on('map:resolve:address', User.checkCredentials, User);
-	        this.mapView.on('map:resolve:address', this.mapView.setUserInfo);
+	        this.mapView.on('map:created', _.partial(this.initMapAPI, User), this);
 
 	        this.mapView.loadAPI();
 	    }
@@ -27616,32 +27625,39 @@
 	var socketIO = __webpack_require__(10);
 	var _ = __webpack_require__(2);
 	var appendEvents = __webpack_require__(6);
-	var _log = __webpack_require__(61)('DriversSocket');
+	var _log = __webpack_require__(65)('DriversSocket');
 
 	var WEBSOCKET_URL = 'http://localhost:8001'
 
-	var Driver = function(User){
-	  var self = this,
-	      cloud = socketIO(WEBSOCKET_URL);
+	var Driver = function(User) {
+	    var self = this,
+	        cloud = socketIO(WEBSOCKET_URL);
 
-	  /*
-	    This method get call, each time there is a change in the cloud.
-	  */
-	  function update(obj){
-	    _log('cloud updates' + obj);
-	    self.trigger('update:drivers', obj);
-	  }
+	    /*
+	      This method get call, each time there is a change in the cloud.
+	    */
+	    function update(obj) {
+	        _log('cloud updates' + obj);
+	        self.trigger('update:drivers', obj);
+	    }
 
-	  function _prepareRequest(data){
-	    return {user: User.get('user'), position: data };
-	  };
+	    function _prepareRequest(data) {
+	        return {
+	            user: User.get('user'),
+	            position: data
+	        };
+	    };
 
-	  this.publishLocation = function(location){
-	    _log('publishing location: '+ location);
-	    cloud.emit('update:location', _prepareRequest(location));
-	  };
+	    this.publishLocation = function(location) {
+	        _log('publishing location: ' + location);
+	        cloud.emit('update:location', _prepareRequest(location));
+	    };
 
-	  cloud.on('update:location', update);
+	    this.getDriverStatus = function(){
+	      cloud.emit('driver:status', {});
+	    };
+
+	    cloud.on('update:location', update);
 	};
 
 	module.exports = appendEvents(Driver);
@@ -27759,7 +27775,7 @@
 	 */
 
 	exports.Manager = __webpack_require__(28);
-	exports.Socket = __webpack_require__(55);
+	exports.Socket = __webpack_require__(59);
 
 
 /***/ },
@@ -30828,14 +30844,14 @@
 	 */
 
 	var eio = __webpack_require__(29);
-	var Socket = __webpack_require__(55);
-	var Emitter = __webpack_require__(56);
+	var Socket = __webpack_require__(59);
+	var Emitter = __webpack_require__(60);
 	var parser = __webpack_require__(17);
-	var on = __webpack_require__(58);
-	var bind = __webpack_require__(59);
+	var on = __webpack_require__(62);
+	var bind = __webpack_require__(63);
 	var debug = __webpack_require__(13)('socket.io-client:manager');
-	var indexOf = __webpack_require__(53);
-	var Backoff = __webpack_require__(60);
+	var indexOf = __webpack_require__(57);
+	var Backoff = __webpack_require__(64);
 
 	/**
 	 * IE6+ hasOwnProperty
@@ -31417,13 +31433,13 @@
 	 */
 
 	var transports = __webpack_require__(32);
-	var Emitter = __webpack_require__(46);
-	var debug = __webpack_require__(13)('engine.io-client:socket');
-	var index = __webpack_require__(53);
+	var Emitter = __webpack_require__(47);
+	var debug = __webpack_require__(51)('engine.io-client:socket');
+	var index = __webpack_require__(57);
 	var parser = __webpack_require__(38);
 	var parseuri = __webpack_require__(12);
-	var parsejson = __webpack_require__(54);
-	var parseqs = __webpack_require__(47);
+	var parsejson = __webpack_require__(58);
+	var parseqs = __webpack_require__(48);
 
 	/**
 	 * Module exports.
@@ -32163,8 +32179,8 @@
 
 	var XMLHttpRequest = __webpack_require__(33);
 	var XHR = __webpack_require__(35);
-	var JSONP = __webpack_require__(50);
-	var websocket = __webpack_require__(51);
+	var JSONP = __webpack_require__(54);
+	var websocket = __webpack_require__(55);
 
 	/**
 	 * Export transports.
@@ -32290,9 +32306,9 @@
 
 	var XMLHttpRequest = __webpack_require__(33);
 	var Polling = __webpack_require__(36);
-	var Emitter = __webpack_require__(46);
-	var inherit = __webpack_require__(48);
-	var debug = __webpack_require__(13)('engine.io-client:polling-xhr');
+	var Emitter = __webpack_require__(47);
+	var inherit = __webpack_require__(49);
+	var debug = __webpack_require__(51)('engine.io-client:polling-xhr');
 
 	/**
 	 * Module exports.
@@ -32720,11 +32736,11 @@
 	 */
 
 	var Transport = __webpack_require__(37);
-	var parseqs = __webpack_require__(47);
+	var parseqs = __webpack_require__(48);
 	var parser = __webpack_require__(38);
-	var inherit = __webpack_require__(48);
-	var yeast = __webpack_require__(49);
-	var debug = __webpack_require__(13)('engine.io-client:polling');
+	var inherit = __webpack_require__(49);
+	var yeast = __webpack_require__(50);
+	var debug = __webpack_require__(51)('engine.io-client:polling');
 
 	/**
 	 * Module exports.
@@ -32971,7 +32987,7 @@
 	 */
 
 	var parser = __webpack_require__(38);
-	var Emitter = __webpack_require__(46);
+	var Emitter = __webpack_require__(47);
 
 	/**
 	 * Module exports.
@@ -33135,13 +33151,13 @@
 
 	var keys = __webpack_require__(39);
 	var hasBinary = __webpack_require__(40);
-	var sliceBuffer = __webpack_require__(41);
-	var after = __webpack_require__(42);
-	var utf8 = __webpack_require__(43);
+	var sliceBuffer = __webpack_require__(42);
+	var after = __webpack_require__(43);
+	var utf8 = __webpack_require__(44);
 
 	var base64encoder;
 	if (global && global.ArrayBuffer) {
-	  base64encoder = __webpack_require__(44);
+	  base64encoder = __webpack_require__(45);
 	}
 
 	/**
@@ -33199,7 +33215,7 @@
 	 * Create a blob api even for blob builder when vendor prefixes exist
 	 */
 
-	var Blob = __webpack_require__(45);
+	var Blob = __webpack_require__(46);
 
 	/**
 	 * Encodes a packet.
@@ -33775,7 +33791,7 @@
 	 * Module requirements.
 	 */
 
-	var isArray = __webpack_require__(26);
+	var isArray = __webpack_require__(41);
 
 	/**
 	 * Module exports.
@@ -33836,6 +33852,15 @@
 /* 41 */
 /***/ function(module, exports) {
 
+	module.exports = Array.isArray || function (arr) {
+	  return Object.prototype.toString.call(arr) == '[object Array]';
+	};
+
+
+/***/ },
+/* 42 */
+/***/ function(module, exports) {
+
 	/**
 	 * An abstraction for slicing an arraybuffer even when
 	 * ArrayBuffer.prototype.slice is not supported
@@ -33868,7 +33893,7 @@
 
 
 /***/ },
-/* 42 */
+/* 43 */
 /***/ function(module, exports) {
 
 	module.exports = after
@@ -33902,7 +33927,7 @@
 
 
 /***/ },
-/* 43 */
+/* 44 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/*! https://mths.be/wtf8 v1.0.0 by @mathias */
@@ -34141,7 +34166,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(22)(module), (function() { return this; }())))
 
 /***/ },
-/* 44 */
+/* 45 */
 /***/ function(module, exports) {
 
 	/*
@@ -34214,7 +34239,7 @@
 
 
 /***/ },
-/* 45 */
+/* 46 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
@@ -34317,7 +34342,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 46 */
+/* 47 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -34486,7 +34511,7 @@
 
 
 /***/ },
-/* 47 */
+/* 48 */
 /***/ function(module, exports) {
 
 	/**
@@ -34529,7 +34554,7 @@
 
 
 /***/ },
-/* 48 */
+/* 49 */
 /***/ function(module, exports) {
 
 	
@@ -34541,7 +34566,7 @@
 	};
 
 /***/ },
-/* 49 */
+/* 50 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -34615,7 +34640,552 @@
 
 
 /***/ },
-/* 50 */
+/* 51 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {
+	/**
+	 * This is the web browser implementation of `debug()`.
+	 *
+	 * Expose `debug()` as the module.
+	 */
+
+	exports = module.exports = __webpack_require__(52);
+	exports.log = log;
+	exports.formatArgs = formatArgs;
+	exports.save = save;
+	exports.load = load;
+	exports.useColors = useColors;
+	exports.storage = 'undefined' != typeof chrome
+	               && 'undefined' != typeof chrome.storage
+	                  ? chrome.storage.local
+	                  : localstorage();
+
+	/**
+	 * Colors.
+	 */
+
+	exports.colors = [
+	  'lightseagreen',
+	  'forestgreen',
+	  'goldenrod',
+	  'dodgerblue',
+	  'darkorchid',
+	  'crimson'
+	];
+
+	/**
+	 * Currently only WebKit-based Web Inspectors, Firefox >= v31,
+	 * and the Firebug extension (any Firefox version) are known
+	 * to support "%c" CSS customizations.
+	 *
+	 * TODO: add a `localStorage` variable to explicitly enable/disable colors
+	 */
+
+	function useColors() {
+	  // is webkit? http://stackoverflow.com/a/16459606/376773
+	  // document is undefined in react-native: https://github.com/facebook/react-native/pull/1632
+	  return (typeof document !== 'undefined' && 'WebkitAppearance' in document.documentElement.style) ||
+	    // is firebug? http://stackoverflow.com/a/398120/376773
+	    (window.console && (console.firebug || (console.exception && console.table))) ||
+	    // is firefox >= v31?
+	    // https://developer.mozilla.org/en-US/docs/Tools/Web_Console#Styling_messages
+	    (navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/) && parseInt(RegExp.$1, 10) >= 31);
+	}
+
+	/**
+	 * Map %j to `JSON.stringify()`, since no Web Inspectors do that by default.
+	 */
+
+	exports.formatters.j = function(v) {
+	  try {
+	    return JSON.stringify(v);
+	  } catch (err) {
+	    return '[UnexpectedJSONParseError]: ' + err.message;
+	  }
+	};
+
+
+	/**
+	 * Colorize log arguments if enabled.
+	 *
+	 * @api public
+	 */
+
+	function formatArgs() {
+	  var args = arguments;
+	  var useColors = this.useColors;
+
+	  args[0] = (useColors ? '%c' : '')
+	    + this.namespace
+	    + (useColors ? ' %c' : ' ')
+	    + args[0]
+	    + (useColors ? '%c ' : ' ')
+	    + '+' + exports.humanize(this.diff);
+
+	  if (!useColors) return args;
+
+	  var c = 'color: ' + this.color;
+	  args = [args[0], c, 'color: inherit'].concat(Array.prototype.slice.call(args, 1));
+
+	  // the final "%c" is somewhat tricky, because there could be other
+	  // arguments passed either before or after the %c, so we need to
+	  // figure out the correct index to insert the CSS into
+	  var index = 0;
+	  var lastC = 0;
+	  args[0].replace(/%[a-z%]/g, function(match) {
+	    if ('%%' === match) return;
+	    index++;
+	    if ('%c' === match) {
+	      // we only are interested in the *last* %c
+	      // (the user may have provided their own)
+	      lastC = index;
+	    }
+	  });
+
+	  args.splice(lastC, 0, c);
+	  return args;
+	}
+
+	/**
+	 * Invokes `console.log()` when available.
+	 * No-op when `console.log` is not a "function".
+	 *
+	 * @api public
+	 */
+
+	function log() {
+	  // this hackery is required for IE8/9, where
+	  // the `console.log` function doesn't have 'apply'
+	  return 'object' === typeof console
+	    && console.log
+	    && Function.prototype.apply.call(console.log, console, arguments);
+	}
+
+	/**
+	 * Save `namespaces`.
+	 *
+	 * @param {String} namespaces
+	 * @api private
+	 */
+
+	function save(namespaces) {
+	  try {
+	    if (null == namespaces) {
+	      exports.storage.removeItem('debug');
+	    } else {
+	      exports.storage.debug = namespaces;
+	    }
+	  } catch(e) {}
+	}
+
+	/**
+	 * Load `namespaces`.
+	 *
+	 * @return {String} returns the previously persisted debug modes
+	 * @api private
+	 */
+
+	function load() {
+	  var r;
+	  try {
+	    return exports.storage.debug;
+	  } catch(e) {}
+
+	  // If debug isn't set in LS, and we're in Electron, try to load $DEBUG
+	  if (typeof process !== 'undefined' && 'env' in process) {
+	    return process.env.DEBUG;
+	  }
+	}
+
+	/**
+	 * Enable namespaces listed in `localStorage.debug` initially.
+	 */
+
+	exports.enable(load());
+
+	/**
+	 * Localstorage attempts to return the localstorage.
+	 *
+	 * This is necessary because safari throws
+	 * when a user disables cookies/localstorage
+	 * and you attempt to access it.
+	 *
+	 * @return {LocalStorage}
+	 * @api private
+	 */
+
+	function localstorage(){
+	  try {
+	    return window.localStorage;
+	  } catch (e) {}
+	}
+
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(14)))
+
+/***/ },
+/* 52 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+	/**
+	 * This is the common logic for both the Node.js and web browser
+	 * implementations of `debug()`.
+	 *
+	 * Expose `debug()` as the module.
+	 */
+
+	exports = module.exports = debug.debug = debug;
+	exports.coerce = coerce;
+	exports.disable = disable;
+	exports.enable = enable;
+	exports.enabled = enabled;
+	exports.humanize = __webpack_require__(53);
+
+	/**
+	 * The currently active debug mode names, and names to skip.
+	 */
+
+	exports.names = [];
+	exports.skips = [];
+
+	/**
+	 * Map of special "%n" handling functions, for the debug "format" argument.
+	 *
+	 * Valid key names are a single, lowercased letter, i.e. "n".
+	 */
+
+	exports.formatters = {};
+
+	/**
+	 * Previously assigned color.
+	 */
+
+	var prevColor = 0;
+
+	/**
+	 * Previous log timestamp.
+	 */
+
+	var prevTime;
+
+	/**
+	 * Select a color.
+	 *
+	 * @return {Number}
+	 * @api private
+	 */
+
+	function selectColor() {
+	  return exports.colors[prevColor++ % exports.colors.length];
+	}
+
+	/**
+	 * Create a debugger with the given `namespace`.
+	 *
+	 * @param {String} namespace
+	 * @return {Function}
+	 * @api public
+	 */
+
+	function debug(namespace) {
+
+	  // define the `disabled` version
+	  function disabled() {
+	  }
+	  disabled.enabled = false;
+
+	  // define the `enabled` version
+	  function enabled() {
+
+	    var self = enabled;
+
+	    // set `diff` timestamp
+	    var curr = +new Date();
+	    var ms = curr - (prevTime || curr);
+	    self.diff = ms;
+	    self.prev = prevTime;
+	    self.curr = curr;
+	    prevTime = curr;
+
+	    // add the `color` if not set
+	    if (null == self.useColors) self.useColors = exports.useColors();
+	    if (null == self.color && self.useColors) self.color = selectColor();
+
+	    var args = new Array(arguments.length);
+	    for (var i = 0; i < args.length; i++) {
+	      args[i] = arguments[i];
+	    }
+
+	    args[0] = exports.coerce(args[0]);
+
+	    if ('string' !== typeof args[0]) {
+	      // anything else let's inspect with %o
+	      args = ['%o'].concat(args);
+	    }
+
+	    // apply any `formatters` transformations
+	    var index = 0;
+	    args[0] = args[0].replace(/%([a-z%])/g, function(match, format) {
+	      // if we encounter an escaped % then don't increase the array index
+	      if (match === '%%') return match;
+	      index++;
+	      var formatter = exports.formatters[format];
+	      if ('function' === typeof formatter) {
+	        var val = args[index];
+	        match = formatter.call(self, val);
+
+	        // now we need to remove `args[index]` since it's inlined in the `format`
+	        args.splice(index, 1);
+	        index--;
+	      }
+	      return match;
+	    });
+
+	    // apply env-specific formatting
+	    args = exports.formatArgs.apply(self, args);
+
+	    var logFn = enabled.log || exports.log || console.log.bind(console);
+	    logFn.apply(self, args);
+	  }
+	  enabled.enabled = true;
+
+	  var fn = exports.enabled(namespace) ? enabled : disabled;
+
+	  fn.namespace = namespace;
+
+	  return fn;
+	}
+
+	/**
+	 * Enables a debug mode by namespaces. This can include modes
+	 * separated by a colon and wildcards.
+	 *
+	 * @param {String} namespaces
+	 * @api public
+	 */
+
+	function enable(namespaces) {
+	  exports.save(namespaces);
+
+	  var split = (namespaces || '').split(/[\s,]+/);
+	  var len = split.length;
+
+	  for (var i = 0; i < len; i++) {
+	    if (!split[i]) continue; // ignore empty strings
+	    namespaces = split[i].replace(/[\\^$+?.()|[\]{}]/g, '\\$&').replace(/\*/g, '.*?');
+	    if (namespaces[0] === '-') {
+	      exports.skips.push(new RegExp('^' + namespaces.substr(1) + '$'));
+	    } else {
+	      exports.names.push(new RegExp('^' + namespaces + '$'));
+	    }
+	  }
+	}
+
+	/**
+	 * Disable debug output.
+	 *
+	 * @api public
+	 */
+
+	function disable() {
+	  exports.enable('');
+	}
+
+	/**
+	 * Returns true if the given mode name is enabled, false otherwise.
+	 *
+	 * @param {String} name
+	 * @return {Boolean}
+	 * @api public
+	 */
+
+	function enabled(name) {
+	  var i, len;
+	  for (i = 0, len = exports.skips.length; i < len; i++) {
+	    if (exports.skips[i].test(name)) {
+	      return false;
+	    }
+	  }
+	  for (i = 0, len = exports.names.length; i < len; i++) {
+	    if (exports.names[i].test(name)) {
+	      return true;
+	    }
+	  }
+	  return false;
+	}
+
+	/**
+	 * Coerce `val`.
+	 *
+	 * @param {Mixed} val
+	 * @return {Mixed}
+	 * @api private
+	 */
+
+	function coerce(val) {
+	  if (val instanceof Error) return val.stack || val.message;
+	  return val;
+	}
+
+
+/***/ },
+/* 53 */
+/***/ function(module, exports) {
+
+	/**
+	 * Helpers.
+	 */
+
+	var s = 1000
+	var m = s * 60
+	var h = m * 60
+	var d = h * 24
+	var y = d * 365.25
+
+	/**
+	 * Parse or format the given `val`.
+	 *
+	 * Options:
+	 *
+	 *  - `long` verbose formatting [false]
+	 *
+	 * @param {String|Number} val
+	 * @param {Object} options
+	 * @throws {Error} throw an error if val is not a non-empty string or a number
+	 * @return {String|Number}
+	 * @api public
+	 */
+
+	module.exports = function (val, options) {
+	  options = options || {}
+	  var type = typeof val
+	  if (type === 'string' && val.length > 0) {
+	    return parse(val)
+	  } else if (type === 'number' && isNaN(val) === false) {
+	    return options.long ?
+				fmtLong(val) :
+				fmtShort(val)
+	  }
+	  throw new Error('val is not a non-empty string or a valid number. val=' + JSON.stringify(val))
+	}
+
+	/**
+	 * Parse the given `str` and return milliseconds.
+	 *
+	 * @param {String} str
+	 * @return {Number}
+	 * @api private
+	 */
+
+	function parse(str) {
+	  str = String(str)
+	  if (str.length > 10000) {
+	    return
+	  }
+	  var match = /^((?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|years?|yrs?|y)?$/i.exec(str)
+	  if (!match) {
+	    return
+	  }
+	  var n = parseFloat(match[1])
+	  var type = (match[2] || 'ms').toLowerCase()
+	  switch (type) {
+	    case 'years':
+	    case 'year':
+	    case 'yrs':
+	    case 'yr':
+	    case 'y':
+	      return n * y
+	    case 'days':
+	    case 'day':
+	    case 'd':
+	      return n * d
+	    case 'hours':
+	    case 'hour':
+	    case 'hrs':
+	    case 'hr':
+	    case 'h':
+	      return n * h
+	    case 'minutes':
+	    case 'minute':
+	    case 'mins':
+	    case 'min':
+	    case 'm':
+	      return n * m
+	    case 'seconds':
+	    case 'second':
+	    case 'secs':
+	    case 'sec':
+	    case 's':
+	      return n * s
+	    case 'milliseconds':
+	    case 'millisecond':
+	    case 'msecs':
+	    case 'msec':
+	    case 'ms':
+	      return n
+	    default:
+	      return undefined
+	  }
+	}
+
+	/**
+	 * Short format for `ms`.
+	 *
+	 * @param {Number} ms
+	 * @return {String}
+	 * @api private
+	 */
+
+	function fmtShort(ms) {
+	  if (ms >= d) {
+	    return Math.round(ms / d) + 'd'
+	  }
+	  if (ms >= h) {
+	    return Math.round(ms / h) + 'h'
+	  }
+	  if (ms >= m) {
+	    return Math.round(ms / m) + 'm'
+	  }
+	  if (ms >= s) {
+	    return Math.round(ms / s) + 's'
+	  }
+	  return ms + 'ms'
+	}
+
+	/**
+	 * Long format for `ms`.
+	 *
+	 * @param {Number} ms
+	 * @return {String}
+	 * @api private
+	 */
+
+	function fmtLong(ms) {
+	  return plural(ms, d, 'day') ||
+	    plural(ms, h, 'hour') ||
+	    plural(ms, m, 'minute') ||
+	    plural(ms, s, 'second') ||
+	    ms + ' ms'
+	}
+
+	/**
+	 * Pluralization helper.
+	 */
+
+	function plural(ms, n, name) {
+	  if (ms < n) {
+	    return
+	  }
+	  if (ms < n * 1.5) {
+	    return Math.floor(ms / n) + ' ' + name
+	  }
+	  return Math.ceil(ms / n) + ' ' + name + 's'
+	}
+
+
+/***/ },
+/* 54 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -34624,7 +35194,7 @@
 	 */
 
 	var Polling = __webpack_require__(36);
-	var inherit = __webpack_require__(48);
+	var inherit = __webpack_require__(49);
 
 	/**
 	 * Module exports.
@@ -34853,7 +35423,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 51 */
+/* 55 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
@@ -34862,15 +35432,15 @@
 
 	var Transport = __webpack_require__(37);
 	var parser = __webpack_require__(38);
-	var parseqs = __webpack_require__(47);
-	var inherit = __webpack_require__(48);
-	var yeast = __webpack_require__(49);
-	var debug = __webpack_require__(13)('engine.io-client:websocket');
+	var parseqs = __webpack_require__(48);
+	var inherit = __webpack_require__(49);
+	var yeast = __webpack_require__(50);
+	var debug = __webpack_require__(51)('engine.io-client:websocket');
 	var BrowserWebSocket = global.WebSocket || global.MozWebSocket;
 	var NodeWebSocket;
 	if (typeof window === 'undefined') {
 	  try {
-	    NodeWebSocket = __webpack_require__(52);
+	    NodeWebSocket = __webpack_require__(56);
 	  } catch (e) { }
 	}
 
@@ -35145,13 +35715,13 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 52 */
+/* 56 */
 /***/ function(module, exports) {
 
 	/* (ignored) */
 
 /***/ },
-/* 53 */
+/* 57 */
 /***/ function(module, exports) {
 
 	
@@ -35166,7 +35736,7 @@
 	};
 
 /***/ },
-/* 54 */
+/* 58 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
@@ -35204,7 +35774,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 55 */
+/* 59 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -35213,10 +35783,10 @@
 	 */
 
 	var parser = __webpack_require__(17);
-	var Emitter = __webpack_require__(56);
-	var toArray = __webpack_require__(57);
-	var on = __webpack_require__(58);
-	var bind = __webpack_require__(59);
+	var Emitter = __webpack_require__(60);
+	var toArray = __webpack_require__(61);
+	var on = __webpack_require__(62);
+	var bind = __webpack_require__(63);
 	var debug = __webpack_require__(13)('socket.io-client:socket');
 	var hasBin = __webpack_require__(40);
 
@@ -35629,7 +36199,7 @@
 
 
 /***/ },
-/* 56 */
+/* 60 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -35798,7 +36368,7 @@
 
 
 /***/ },
-/* 57 */
+/* 61 */
 /***/ function(module, exports) {
 
 	module.exports = toArray
@@ -35817,7 +36387,7 @@
 
 
 /***/ },
-/* 58 */
+/* 62 */
 /***/ function(module, exports) {
 
 	
@@ -35847,7 +36417,7 @@
 
 
 /***/ },
-/* 59 */
+/* 63 */
 /***/ function(module, exports) {
 
 	/**
@@ -35876,7 +36446,7 @@
 
 
 /***/ },
-/* 60 */
+/* 64 */
 /***/ function(module, exports) {
 
 	
@@ -35967,7 +36537,7 @@
 
 
 /***/ },
-/* 61 */
+/* 65 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -35982,7 +36552,7 @@
 
 
 /***/ },
-/* 62 */
+/* 66 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
@@ -35990,7 +36560,7 @@
 	var _ = __webpack_require__(2);
 	var factory = __webpack_require__(6);
 	var util = __webpack_require__(8);
-	var _log = __webpack_require__(61)('location');
+	var _log = __webpack_require__(65)('location');
 
 	var DEBUG = true;
 
@@ -36061,14 +36631,14 @@
 
 
 /***/ },
-/* 63 */
+/* 67 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	var _ = __webpack_require__(2);
 	var Backbone = __webpack_require__(1);
-	var _log = __webpack_require__(61)('user-model');
+	var _log = __webpack_require__(65)('user-model');
 
 	var User = {
 
@@ -36116,374 +36686,6 @@
 
 
 /***/ },
-/* 64 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var Backbone = __webpack_require__(1);
-	var $script = __webpack_require__(65);
-	var $ = __webpack_require__(3);
-	var _ = __webpack_require__(2);
-
-	var _log = __webpack_require__(61)('MapView');
-
-	// MapView Class listen to the following events
-	var MapView = {
-
-	    GMAP_API: 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDoez83-bCpLCFESHMiNpfkBrplOV36Hbs',
-
-	    // Sometimes you just want the same instance, to avoid duplication and Heap memory bloat.
-	    singleton: function() {
-	        var cachedInstances = {};
-
-	        return function(name) {
-	            var instance = null;
-
-	            if (_.isUndefined(cachedInstances[name]))
-	                instance = new google.maps[name];
-	            else
-	              return cachedInstances[name];
-
-	            cachedInstances[name] = instance;
-	            return instance;
-	        }
-	    }(),
-
-
-
-	    /*  We need to inyect here a geolocation API, we listen for
-	     *  the following events:
-	     *
-	     *    geolocation:position
-	     *
-	     *      params  {
-	     *        lat: 'latitude',
-	     *        lng: 'longitude'
-	     *      }
-	     *
-	     *  Take a look at api/geo.js
-	     */
-
-	    initialize: function(options) {
-	        if (_.isEmpty(options.geolocationAPI)) throw "Not geolocationAPI Inyected";
-
-	        var geo = options.geolocationAPI;
-
-
-	        this.listenTo(geo, 'geolocation:position', this.getAddress);
-
-	        this.on('map:api:downloaded', this.start);
-	    },
-
-	    /*
-	     * Start
-	     * Instanciate the Google Map API.
-	     *
-	     */
-	    start: function() {
-
-	        this.geocoder = new google.maps.Geocoder;
-
-	        this.map = new google.maps.Map(this.$el[0], {
-	            zoom: 11,
-	            disableDefaultUI: true,
-	            gestureHandling: "greedy",
-	            center: {
-	                lat: 18.7357,
-	                lng: -70.1627
-	            }
-	        });
-
-	        google.maps.event.addDomListener(this.$el[0], 'touchstart', this.onTouchStart.bind(this));
-	        google.maps.event.addDomListener(this.$el[0], 'touchend', this.onTouchEnd.bind(this));
-
-	        this.trigger('map:created', this.map);
-
-	    },
-
-	    /*
-	      The map is being touch.
-	    */
-	    onTouchStart: function(){
-	      this.trigger('map:touch:start');
-	      return false; // bubble up the touchstart event, means this don't freeze the UI.
-	    },
-
-	    /*
-	      The map is being touch.
-	    */
-	    onTouchEnd: function(){
-	      this.trigger('map:touch:end');
-	      return false; // bubble up the touchstart event, means this don't freeze the UI.
-	    },
-
-
-	    /*
-	     * Download the Google Map API V3 async and start working, when the API is downloaded
-	     * we trigger an map:api:downloaded event.
-	     */
-	    loadAPI: function() {
-
-	        $script(this.GMAP_API, function() {
-	            this.trigger('map:api:downloaded');
-	        }.bind(this));
-
-	        return this;
-	    },
-
-	    /*
-	     * Quick and dirty example of using inverse Geocode Google API.
-	     *
-	     * When google maps resolve the address, we trigger an map:resolve:address and we pass a string parameter with
-	     * the address.
-	     */
-	    getAddress: function(position) {
-	        var url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=$position$&key=$key$";
-
-	        this.geocoder.geocode({
-	            'location': position
-	        }, function(results, status) {
-	            if (status === google.maps.GeocoderStatus.OK)
-	                this.trigger('map:resolve:address', results[0].formatted_address);
-	        }.bind(this));
-	    }
-	};
-
-	module.exports = Backbone.View.extend(MapView);
-
-
-/***/ },
-/* 65 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
-	  * $script.js JS loader & dependency manager
-	  * https://github.com/ded/script.js
-	  * (c) Dustin Diaz 2014 | License MIT
-	  */
-
-	(function (name, definition) {
-	  if (typeof module != 'undefined' && module.exports) module.exports = definition()
-	  else if (true) !(__WEBPACK_AMD_DEFINE_FACTORY__ = (definition), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.call(exports, __webpack_require__, exports, module)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__))
-	  else this[name] = definition()
-	})('$script', function () {
-	  var doc = document
-	    , head = doc.getElementsByTagName('head')[0]
-	    , s = 'string'
-	    , f = false
-	    , push = 'push'
-	    , readyState = 'readyState'
-	    , onreadystatechange = 'onreadystatechange'
-	    , list = {}
-	    , ids = {}
-	    , delay = {}
-	    , scripts = {}
-	    , scriptpath
-	    , urlArgs
-
-	  function every(ar, fn) {
-	    for (var i = 0, j = ar.length; i < j; ++i) if (!fn(ar[i])) return f
-	    return 1
-	  }
-	  function each(ar, fn) {
-	    every(ar, function (el) {
-	      return !fn(el)
-	    })
-	  }
-
-	  function $script(paths, idOrDone, optDone) {
-	    paths = paths[push] ? paths : [paths]
-	    var idOrDoneIsDone = idOrDone && idOrDone.call
-	      , done = idOrDoneIsDone ? idOrDone : optDone
-	      , id = idOrDoneIsDone ? paths.join('') : idOrDone
-	      , queue = paths.length
-	    function loopFn(item) {
-	      return item.call ? item() : list[item]
-	    }
-	    function callback() {
-	      if (!--queue) {
-	        list[id] = 1
-	        done && done()
-	        for (var dset in delay) {
-	          every(dset.split('|'), loopFn) && !each(delay[dset], loopFn) && (delay[dset] = [])
-	        }
-	      }
-	    }
-	    setTimeout(function () {
-	      each(paths, function loading(path, force) {
-	        if (path === null) return callback()
-	        
-	        if (!force && !/^https?:\/\//.test(path) && scriptpath) {
-	          path = (path.indexOf('.js') === -1) ? scriptpath + path + '.js' : scriptpath + path;
-	        }
-	        
-	        if (scripts[path]) {
-	          if (id) ids[id] = 1
-	          return (scripts[path] == 2) ? callback() : setTimeout(function () { loading(path, true) }, 0)
-	        }
-
-	        scripts[path] = 1
-	        if (id) ids[id] = 1
-	        create(path, callback)
-	      })
-	    }, 0)
-	    return $script
-	  }
-
-	  function create(path, fn) {
-	    var el = doc.createElement('script'), loaded
-	    el.onload = el.onerror = el[onreadystatechange] = function () {
-	      if ((el[readyState] && !(/^c|loade/.test(el[readyState]))) || loaded) return;
-	      el.onload = el[onreadystatechange] = null
-	      loaded = 1
-	      scripts[path] = 2
-	      fn()
-	    }
-	    el.async = 1
-	    el.src = urlArgs ? path + (path.indexOf('?') === -1 ? '?' : '&') + urlArgs : path;
-	    head.insertBefore(el, head.lastChild)
-	  }
-
-	  $script.get = create
-
-	  $script.order = function (scripts, id, done) {
-	    (function callback(s) {
-	      s = scripts.shift()
-	      !scripts.length ? $script(s, id, done) : $script(s, callback)
-	    }())
-	  }
-
-	  $script.path = function (p) {
-	    scriptpath = p
-	  }
-	  $script.urlArgs = function (str) {
-	    urlArgs = str;
-	  }
-	  $script.ready = function (deps, ready, req) {
-	    deps = deps[push] ? deps : [deps]
-	    var missing = [];
-	    !each(deps, function (dep) {
-	      list[dep] || missing[push](dep);
-	    }) && every(deps, function (dep) {return list[dep]}) ?
-	      ready() : !function (key) {
-	      delay[key] = delay[key] || []
-	      delay[key][push](ready)
-	      req && req(missing)
-	    }(deps.join('|'))
-	    return $script
-	  }
-
-	  $script.done = function (idOrDone) {
-	    $script([null], idOrDone)
-	  }
-
-	  return $script
-	});
-
-
-/***/ },
-/* 66 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var _ = __webpack_require__(2);
-	var $ = __webpack_require__(3);
-	var appendEvents = __webpack_require__(6);
-	var _log = __webpack_require__(61)('Marker');
-
-	var cache = {};
-	var MapMarkers = function(Map){
-
-	  function copyPosition(p1, p2){
-	    p1.position = p2.position;
-	  }
-
-	  function showUserInfo(driverName){
-	    var driver = cache[driverName];
-	    var infoWindow = getInstance(driverName, 'InfoWindow');
-
-	    infoWindow.setContent($('<div class=\"info\"></div>').html(driverName).html());
-	    infoWindow.open(Map, driver.Marker);
-	  };
-
-	  function getInstance(key, objName){
-	    if(!cache[key].hasOwnProperty(objName)){
-	      cache[key][objName] = new google.maps[objName]();
-	      return cache[key][objName];
-	    }else
-	      return cache[key][objName];
-	  };
-
-	  function drawAll(){
-	    Object.keys(cache).forEach(function(key){
-	      addMarkers(key, cache[key]);
-	      showUserInfo(key);
-	    },this);
-	  };
-
-	  function addMarkers(key, mark){
-	     _log('marking -> ' + key);
-
-	     var marker = new google.maps.Marker();
-	     marker.setAnimation(google.maps.Animation.DROP);
-	     marker.setPosition(mark.position);
-	     marker.setMap(Map);
-
-	     return marker;
-	  };
-
-
-	  function diffUpdate(drivers){
-	    for(var key in drivers) {
-	      if( !_.isEqual(drivers[key].position, cache[key].position) ){
-	        copyPosition(cache[key], drivers[key]);
-	        addMarkers(key, drivers[key]);
-	      }
-	    }
-	  };
-
-	  this.setOrigin = function(driverName){
-	    _log('setting:origin -> '+ driverName);
-	    var driver = cache[driverName];
-	    driver.Marker.setIcon(__webpack_require__(82));
-	  };
-
-
-	  this.centerAt = function(driverName, zoom){
-	    _log('centering -> '+ driverName);
-	    var driver = cache[driverName];
-	    Map.setCenter(driver.position);
-	  };
-
-
-	  this.user = function(username, position){
-	    cache[username] = addMarkers
-	  }
-
-
-
-	  this.update = function(drivers){
-
-	    if(_.isEmpty(cache)){
-	      cache = drivers;
-	      drawAll();
-	    }else{
-	      diffUpdate(drivers);
-	    }
-	  };
-
-
-
-
-	};
-
-	module.exports = appendEvents(MapMarkers);
-
-
-/***/ },
-/* 67 */,
 /* 68 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -36493,7 +36695,7 @@
 	var _ = __webpack_require__(2);
 	var $ = __webpack_require__(3);
 
-	var _log = __webpack_require__(61)('home');
+	var _log = __webpack_require__(65)('home');
 
 	var Home = {
 
@@ -36523,7 +36725,7 @@
 
 	var styles = __webpack_require__(70);
 	var template = __webpack_require__(74);
-	var _log = __webpack_require__(61)('Login');
+	var _log = __webpack_require__(65)('Login');
 	var util = __webpack_require__(8);
 
 	var Login = {
@@ -36591,8 +36793,8 @@
 	// Hot Module Replacement
 	if(false) {
 		// When the styles change, update the <style> tags
-		module.hot.accept("!!C:\\Users\\cesar\\Documents\\development\\javascript\\wfm-taxi\\client\\node_modules\\css-loader\\index.js!C:\\Users\\cesar\\Documents\\development\\javascript\\wfm-taxi\\client\\www\\style\\form.css", function() {
-			var newContent = require("!!C:\\Users\\cesar\\Documents\\development\\javascript\\wfm-taxi\\client\\node_modules\\css-loader\\index.js!C:\\Users\\cesar\\Documents\\development\\javascript\\wfm-taxi\\client\\www\\style\\form.css");
+		module.hot.accept("!!/Users/cvaldez/Documents/devs/wfm-taxi/client/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/wfm-taxi/client/www/style/form.css", function() {
+			var newContent = require("!!/Users/cvaldez/Documents/devs/wfm-taxi/client/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/wfm-taxi/client/www/style/form.css");
 			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
 			update(newContent);
 		});
@@ -36609,7 +36811,7 @@
 
 
 	// module
-	exports.push([module.id, "\r\n\r\n.login-form {\r\n  height: 100%;\r\n  width: 100%;\r\n  z-index: 4;\r\n  position: absolute;\r\n  background: transparent;\r\n  top: 0px;\r\n  opacity: 0;\r\n  -webkit-transition: width, top, opacity 1s;\r\n}\r\n\r\n.form-wrapper {\r\n  margin-top: 60px;\r\n}\r\n\r\n.form-container {\r\n  position: relative;\r\n  width: 360px;\r\n  margin-right: auto;\r\n  margin-left: auto;\r\n  margin-top: 20px;\r\n}\r\n\r\n\r\n.box-form {\r\n  width: 86%;\r\n  margin-top: 10px;\r\n  margin-right: auto;\r\n  margin-left: auto;\r\n}\r\n\r\n\r\n.box-form > input {\r\n height: 40px;\r\n background: #495560;\r\n opacity: 0.8;\r\n color: white;\r\n text-transform: uppercase;\r\n border-style: none;\r\n}\r\n\r\n.box-form > p {\r\n  color: #333333;\r\n  font-family: Impact, Charcoal, sans-serif;\r\n  /*font-family: Impact, Charcoal, sans-serif;\r\n  font-family: Verdana, Geneva, sans-serif;\r\n  font-family: ‘Lucida Console’, Monaco, monospace;\r\n  font-family: ‘Trebuchet MS’, Helvetica, sans-serif; */\r\n}\r\n\r\n.login-form.show {\r\n  opacity: 1;\r\n}\r\n\r\n.box-form > .title {\r\n  text-align: center;\r\n  font-size: 59px;\r\n  color:white;\r\n}\r\n\r\n.icon-descriptor {\r\n    width: 87px;\r\n    position: absolute;\r\n    height: 70px;\r\n    float: left;\r\n    background-color: black;\r\n    border-radius: 2px;\r\n    opacity: 0.6;\r\n    left: 21px;\r\n}\r\n", ""]);
+	exports.push([module.id, "\n\n.login-form {\n  height: 100%;\n  width: 100%;\n  z-index: 4;\n  position: absolute;\n  background: transparent;\n  top: 0px;\n  opacity: 0;\n  -webkit-transition: width, top, opacity 1s;\n}\n\n.form-wrapper {\n  margin-top: 60px;\n}\n\n.form-container {\n  position: relative;\n  width: 360px;\n  margin-right: auto;\n  margin-left: auto;\n  margin-top: 20px;\n}\n\n\n.box-form {\n  width: 86%;\n  margin-top: 10px;\n  margin-right: auto;\n  margin-left: auto;\n}\n\n\n.box-form > input {\n height: 40px;\n background: #495560;\n opacity: 0.8;\n color: white;\n text-transform: uppercase;\n border-style: none;\n}\n\n.box-form > p {\n  color: #333333;\n  font-family: Impact, Charcoal, sans-serif;\n  /*font-family: Impact, Charcoal, sans-serif;\n  font-family: Verdana, Geneva, sans-serif;\n  font-family: ‘Lucida Console’, Monaco, monospace;\n  font-family: ‘Trebuchet MS’, Helvetica, sans-serif; */\n}\n\n.login-form.show {\n  opacity: 1;\n}\n\n.box-form > .title {\n  text-align: center;\n  font-size: 59px;\n  color:white;\n}\n\n.icon-descriptor {\n    width: 87px;\n    position: absolute;\n    height: 70px;\n    float: left;\n    background-color: black;\n    border-radius: 2px;\n    opacity: 0.6;\n    left: 21px;\n}\n", ""]);
 
 	// exports
 
@@ -36873,7 +37075,7 @@
 	module.exports = function(obj){
 	var __t,__p='',__j=Array.prototype.join,print=function(){__p+=__j.call(arguments,'');};
 	with(obj||{}){
-	__p+='<div class="form-container">\r\n      <div class="box-form">\r\n        <p class="title">Taxi Demo</p>\r\n      </div>\r\n    <div class="form-wrapper">\r\n        <fieldset>\r\n\r\n            <!-- Form Name -->\r\n            <!-- <legend>Login</legend> -->\r\n            <!-- Text input-->\r\n\r\n            <div class="box-form box-input">\r\n\r\n                <input id="user" name="user" placeholder="User" style="" class="form-control input-md" required="" type="text">\r\n            </div>\r\n\r\n\r\n\r\n            <div class="box-form box-input">\r\n                <input id="phone" name="phone" type="tel" placeholder="Password" class="form-control input-md" required="" type="text">\r\n                <span class="help-block"></span>\r\n            </div>\r\n\r\n\r\n            <!-- Button -->\r\n\r\n            <div class="box-form box-input">\r\n                <button id="login-btn" name="login-btn" class="btn btn-primary btn-lg dropdown-toggle btn-next register">\r\n                    Continue\r\n                  </button>\r\n            </div>\r\n\r\n\r\n        </fieldset>\r\n    </div>\r\n\r\n\r\n</div>\r\n';
+	__p+='<div class="form-container">\n      <div class="box-form">\n        <p class="title">Taxi Demo</p>\n      </div>\n    <div class="form-wrapper">\n        <fieldset>\n\n            <!-- Form Name -->\n            <!-- <legend>Login</legend> -->\n            <!-- Text input-->\n\n            <div class="box-form box-input">\n\n                <input id="user" name="user" placeholder="User" style="" class="form-control input-md" required="" type="text">\n            </div>\n\n\n\n            <div class="box-form box-input">\n                <input id="phone" name="phone" type="tel" placeholder="Password" class="form-control input-md" required="" type="text">\n                <span class="help-block"></span>\n            </div>\n\n\n            <!-- Button -->\n\n            <div class="box-form box-input">\n                <button id="login-btn" name="login-btn" class="btn btn-primary btn-lg dropdown-toggle btn-next register">\n                    Continue\n                  </button>\n            </div>\n\n\n        </fieldset>\n    </div>\n\n\n</div>\n';
 	}
 	return __p;
 	};
@@ -36931,8 +37133,8 @@
 	// Hot Module Replacement
 	if(false) {
 		// When the styles change, update the <style> tags
-		module.hot.accept("!!C:\\Users\\cesar\\Documents\\development\\javascript\\wfm-taxi\\client\\node_modules\\css-loader\\index.js!C:\\Users\\cesar\\Documents\\development\\javascript\\wfm-taxi\\client\\www\\style\\notify.css", function() {
-			var newContent = require("!!C:\\Users\\cesar\\Documents\\development\\javascript\\wfm-taxi\\client\\node_modules\\css-loader\\index.js!C:\\Users\\cesar\\Documents\\development\\javascript\\wfm-taxi\\client\\www\\style\\notify.css");
+		module.hot.accept("!!/Users/cvaldez/Documents/devs/wfm-taxi/client/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/wfm-taxi/client/www/style/notify.css", function() {
+			var newContent = require("!!/Users/cvaldez/Documents/devs/wfm-taxi/client/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/wfm-taxi/client/www/style/notify.css");
 			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
 			update(newContent);
 		});
@@ -36949,7 +37151,7 @@
 
 
 	// module
-	exports.push([module.id, ".notify {\r\n  top: 0px;\r\n  position: absolute;\r\n  background-color: black;\r\n  width: 100%;\r\n  opacity: 0.8;\r\n  transition: opacity .85s ease-in-out;\r\n  -webkit-transition: opacity .85s ease-in-out;\r\n}\r\n\r\n.loading {\r\n  background-repeat: no-repeat;\r\n  background-position-y: -4px;\r\n  background-position-x: -2px;\r\n  background-image: url(" + __webpack_require__(78) + ");\r\n}\r\n\r\n.hide-notification {\r\n  opacity: 0;\r\n}\r\n\r\n.notify > p {\r\n  color: white;\r\n  margin: 3px;\r\n  margin-left: 30px;\r\n}\r\n", ""]);
+	exports.push([module.id, ".notify {\n  top: 0px;\n  position: absolute;\n  background-color: black;\n  width: 100%;\n  opacity: 0.8;\n  transition: opacity .85s ease-in-out;\n  -webkit-transition: opacity .85s ease-in-out;\n}\n\n.loading {\n  background-repeat: no-repeat;\n  background-position-y: -4px;\n  background-position-x: -2px;\n  background-image: url(" + __webpack_require__(78) + ");\n}\n\n.hide-notification {\n  opacity: 0;\n}\n\n.notify > p {\n  color: white;\n  margin: 3px;\n  margin-left: 30px;\n}\n", ""]);
 
 	// exports
 
@@ -36965,14 +37167,525 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
+
+	var Backbone = __webpack_require__(1);
+	var $script = __webpack_require__(80);
+	var $ = __webpack_require__(3);
+	var _ = __webpack_require__(2);
+
+	var _log = __webpack_require__(65)('MapView');
+
+	// MapView Class listen to the following events
+	var MapView = {
+
+	    GMAP_API: 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDoez83-bCpLCFESHMiNpfkBrplOV36Hbs',
+
+
+	    /*  We need to inyect here a geolocation API, we listen for
+	     *  the following events:
+	     *
+	     *    geolocation:position
+	     *
+	     *      params  {
+	     *        lat: 'latitude',
+	     *        lng: 'longitude'
+	     *      }
+	     *
+	     *  Take a look at api/geo.js
+	     */
+
+	    initialize: function(options) {
+	        if (_.isEmpty(options.geolocationAPI)) throw "Not geolocationAPI Inyected";
+
+	        var geo = options.geolocationAPI;
+
+
+	        this.listenTo(geo, 'geolocation:position', this.getAddress);
+
+	        this.on('map:api:downloaded', this.start);
+	    },
+
+	    /*
+	     * Start
+	     * Instanciate the Google Map API.
+	     *
+	     */
+	    start: function() {
+
+	        this.geocoder = new google.maps.Geocoder;
+
+	        this.map = new google.maps.Map(this.$el[0], {
+	            zoom: 11,
+	            disableDefaultUI: true,
+	            gestureHandling: "greedy",
+	            center: {
+	                lat: 18.7357,
+	                lng: -70.1627
+	            }
+	        });
+
+	        google.maps.event.addDomListener(this.$el[0], 'touchstart', this.onTouchStart.bind(this));
+	        google.maps.event.addDomListener(this.$el[0], 'touchend', this.onTouchEnd.bind(this));
+
+	        this.trigger('map:created', this.map);
+
+	    },
+
+	    /*
+	      The map is being touch.
+	    */
+	    onTouchStart: function(){
+	      this.trigger('map:touch:start');
+	      return false; // bubble up the touchstart event, means this don't freeze the UI.
+	    },
+
+	    /*
+	      The map is being touch.
+	    */
+	    onTouchEnd: function(){
+	      this.trigger('map:touch:end');
+	      return false; // bubble up the touchstart event, means this don't freeze the UI.
+	    },
+
+
+	    /*
+	     * Download the Google Map API V3 async and start working, when the API is downloaded
+	     * we trigger an map:api:downloaded event.
+	     */
+	    loadAPI: function() {
+
+	        $script(this.GMAP_API, function() {
+	            this.trigger('map:api:downloaded');
+	        }.bind(this));
+
+	        return this;
+	    },
+
+	    /*
+	     * Quick and dirty example of using inverse Geocode Google API.
+	     *
+	     * When google maps resolve the address, we trigger an map:resolve:address and we pass a string parameter with
+	     * the address.
+	     */
+	    getAddress: function(position) {
+	        var url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=$position$&key=$key$";
+
+	        this.geocoder.geocode({
+	            'location': position
+	        }, function(results, status) {
+	            if (status === google.maps.GeocoderStatus.OK)
+	                this.trigger('map:resolve:address', results[0].formatted_address);
+	        }.bind(this));
+	    }
+	};
+
+	module.exports = Backbone.View.extend(MapView);
+
+
+/***/ },
+/* 80 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
+	  * $script.js JS loader & dependency manager
+	  * https://github.com/ded/script.js
+	  * (c) Dustin Diaz 2014 | License MIT
+	  */
+
+	(function (name, definition) {
+	  if (typeof module != 'undefined' && module.exports) module.exports = definition()
+	  else if (true) !(__WEBPACK_AMD_DEFINE_FACTORY__ = (definition), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.call(exports, __webpack_require__, exports, module)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__))
+	  else this[name] = definition()
+	})('$script', function () {
+	  var doc = document
+	    , head = doc.getElementsByTagName('head')[0]
+	    , s = 'string'
+	    , f = false
+	    , push = 'push'
+	    , readyState = 'readyState'
+	    , onreadystatechange = 'onreadystatechange'
+	    , list = {}
+	    , ids = {}
+	    , delay = {}
+	    , scripts = {}
+	    , scriptpath
+	    , urlArgs
+
+	  function every(ar, fn) {
+	    for (var i = 0, j = ar.length; i < j; ++i) if (!fn(ar[i])) return f
+	    return 1
+	  }
+	  function each(ar, fn) {
+	    every(ar, function (el) {
+	      return !fn(el)
+	    })
+	  }
+
+	  function $script(paths, idOrDone, optDone) {
+	    paths = paths[push] ? paths : [paths]
+	    var idOrDoneIsDone = idOrDone && idOrDone.call
+	      , done = idOrDoneIsDone ? idOrDone : optDone
+	      , id = idOrDoneIsDone ? paths.join('') : idOrDone
+	      , queue = paths.length
+	    function loopFn(item) {
+	      return item.call ? item() : list[item]
+	    }
+	    function callback() {
+	      if (!--queue) {
+	        list[id] = 1
+	        done && done()
+	        for (var dset in delay) {
+	          every(dset.split('|'), loopFn) && !each(delay[dset], loopFn) && (delay[dset] = [])
+	        }
+	      }
+	    }
+	    setTimeout(function () {
+	      each(paths, function loading(path, force) {
+	        if (path === null) return callback()
+	        
+	        if (!force && !/^https?:\/\//.test(path) && scriptpath) {
+	          path = (path.indexOf('.js') === -1) ? scriptpath + path + '.js' : scriptpath + path;
+	        }
+	        
+	        if (scripts[path]) {
+	          if (id) ids[id] = 1
+	          return (scripts[path] == 2) ? callback() : setTimeout(function () { loading(path, true) }, 0)
+	        }
+
+	        scripts[path] = 1
+	        if (id) ids[id] = 1
+	        create(path, callback)
+	      })
+	    }, 0)
+	    return $script
+	  }
+
+	  function create(path, fn) {
+	    var el = doc.createElement('script'), loaded
+	    el.onload = el.onerror = el[onreadystatechange] = function () {
+	      if ((el[readyState] && !(/^c|loade/.test(el[readyState]))) || loaded) return;
+	      el.onload = el[onreadystatechange] = null
+	      loaded = 1
+	      scripts[path] = 2
+	      fn()
+	    }
+	    el.async = 1
+	    el.src = urlArgs ? path + (path.indexOf('?') === -1 ? '?' : '&') + urlArgs : path;
+	    head.insertBefore(el, head.lastChild)
+	  }
+
+	  $script.get = create
+
+	  $script.order = function (scripts, id, done) {
+	    (function callback(s) {
+	      s = scripts.shift()
+	      !scripts.length ? $script(s, id, done) : $script(s, callback)
+	    }())
+	  }
+
+	  $script.path = function (p) {
+	    scriptpath = p
+	  }
+	  $script.urlArgs = function (str) {
+	    urlArgs = str;
+	  }
+	  $script.ready = function (deps, ready, req) {
+	    deps = deps[push] ? deps : [deps]
+	    var missing = [];
+	    !each(deps, function (dep) {
+	      list[dep] || missing[push](dep);
+	    }) && every(deps, function (dep) {return list[dep]}) ?
+	      ready() : !function (key) {
+	      delay[key] = delay[key] || []
+	      delay[key][push](ready)
+	      req && req(missing)
+	    }(deps.join('|'))
+	    return $script
+	  }
+
+	  $script.done = function (idOrDone) {
+	    $script([null], idOrDone)
+	  }
+
+	  return $script
+	});
+
+
+/***/ },
+/* 81 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var Backbone = __webpack_require__(1);
+	var $ = __webpack_require__(3);
+	var _ = __webpack_require__(2);
+
+	var styles = __webpack_require__(82);
+	var template = __webpack_require__(84);
+
+	var _log = __webpack_require__(65)('InfoView');
+
+	// InfoView Class listen to the following events
+	var InfoView = {
+
+	    initialize: function(options) {
+	        this.infoWindow = new google.maps.InfoWindow();
+	        this.geocoder = new google.maps.Geocoder;
+
+	        this.user = options.user;
+	        this.associatedMarker = options.marker;
+	        this.associatedMap = options.map;
+
+	        this.associatedMarker.addListener('click', this.open.bind(this));
+	        this.infoWindow.addListener('closeclick', this.close.bind(this));
+
+	        this.on('resolve:address', this.setAddress);
+	        this.on('resolve:address', this.render);
+
+	        this.rendered = false;
+	    },
+
+	    setAddress: function(address){
+	      this.address = address;
+	    },
+
+	    getPosition: function(){
+	        return {
+	               lat: this.associatedMarker
+	                        .getPosition()
+	                        .lat(),
+	               lng: this.associatedMarker
+	                        .getPosition()
+	                        .lng()
+	           };
+	    },
+
+	    updateAddress: function(){
+	      this.getAddress(this.getPosition());
+	    },
+
+	    getJSON: function() {
+	        return {
+	            user: this.user.get('user'),
+	            address: this.address || "Loading..."
+	        }
+	    },
+
+	    close: function() {
+	        this.infoWindow.close();
+	        this.rendered = false;
+	    },
+
+
+	    /*
+	     * Quick and dirty example of using inverse Geocode Google API.
+	     *
+	     * When google maps resolve the address, we trigger an map:resolve:address and we pass a string parameter with
+	     * the address.
+	     */
+	    getAddress: function(position) {
+	        var url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=$position$&key=$key$";
+
+	        this.geocoder.geocode({
+	            'location': position
+	        }, function(results, status) {
+	            if (status === google.maps.GeocoderStatus.OK)
+	                this.trigger('resolve:address', results[0].formatted_address);
+	        }.bind(this));
+	    },
+
+	    open: function() {
+	        if (this.rendered) {
+	            this.close();
+	            return;
+	        }
+
+	        this.render();
+
+	        this.infoWindow.open(
+	            this.associatedMap,
+	            this.associatedMarker);
+
+	        this.rendered = true;
+	    },
+
+	    render: function() {
+	        this.$el.html(template(this.getJSON()));
+	        this.infoWindow.setContent(this.$el.html());
+	    }
+	};
+
+	module.exports = Backbone.View.extend(InfoView);
+
+
+/***/ },
+/* 82 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+
+	// load the styles
+	var content = __webpack_require__(83);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(73)(content, {});
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		module.hot.accept("!!/Users/cvaldez/Documents/devs/wfm-taxi/client/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/wfm-taxi/client/www/style/info.css", function() {
+			var newContent = require("!!/Users/cvaldez/Documents/devs/wfm-taxi/client/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/wfm-taxi/client/www/style/info.css");
+			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+			update(newContent);
+		});
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
+	}
+
+/***/ },
+/* 83 */
+/***/ function(module, exports, __webpack_require__) {
+
+	exports = module.exports = __webpack_require__(72)();
+	// imports
+
+
+	// module
+	exports.push([module.id, ".infoview {\n  margin-top: 10px;\n  height: 180px;\n}\n\n.infoview-field {\n  height: 20px;\n  font-size: 16px;\n  margin: 12px;\n}\n\n", ""]);
+
+	// exports
+
+
+/***/ },
+/* 84 */
+/***/ function(module, exports) {
+
+	module.exports = function(obj){
+	var __t,__p='',__j=Array.prototype.join,print=function(){__p+=__j.call(arguments,'');};
+	with(obj||{}){
+	__p+='<div class="infoview">\n      <div class="infoview-field">\n      <p class="glyphicon glyphicon-user" aria-hidden="true">\n      '+
+	((__t=(user))==null?'':__t)+
+	'\n      </p>\n      </div>\n\n      <div class="infoview-field">\n      <p class="glyphicon glyphicon-home" aria-hidden="true">\n      '+
+	((__t=(address))==null?'':__t)+
+	'\n      </p>\n      </div>\n\n      <div class="infoview-field">\n        <ul class="list-group">\n         <li class="list-group-item">\n         <span class="badge">10</span>\n          Workorders\n         </li>\n         <li class="list-group-item">\n         <span class="badge">3</span>\n          History\n         </li>\n        </ul>\n      </div>\n</div>\n\n\n';
+	}
+	return __p;
+	};
+
+
+/***/ },
+/* 85 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _ = __webpack_require__(2);
+	var $ = __webpack_require__(3);
+	var appendEvents = __webpack_require__(6);
+	var _log = __webpack_require__(65)('Marker');
+
+	var cache = {};
+	var userMark = {};
+	var InfoView = null;
+
+	var MapMarkers = function(Map, _InfoView) {
+
+	    InfoView = _InfoView || _.identity;
+
+	    //Remove the user from this device from the tracking list.
+	    function removeUser(User, data) {
+	        var userName = User.get('user');
+
+	        if (!_.isUndefined(data[userName])) {
+	            delete data[userName];
+	        }
+
+	        return data;
+	    };
+
+	    function createDriversMarker(memo, data, driverName) {
+	        console.log('data->', data);
+
+	        memo[driverName] = {
+	            data: {
+	                position: data,
+	                marker: createMark(data.position)
+	            }
+	        };
+
+	        return memo;
+	    };
+
+	    function createMark(position) {
+	        var marker = new google.maps.Marker();
+
+	        marker.setAnimation(google.maps.Animation.DROP);
+	        marker.setPosition(position);
+	        marker.setMap(Map);
+
+	        return marker;
+	    };
+
+	    this.setOrigin = function(driverName) {
+	        _log('setting:origin -> ' + driverName);
+	        var driver = cache[driverName];
+	    };
+
+	    this.markDriversInMap = function(user, drivers) {
+	        var _drivers = removeUser(user, drivers);
+	        cache = _.reduce(_drivers, createDriversMarker, {});
+	    };
+
+	    this.markUserInMap = function(user, position) {
+
+	        userMark.marker = createMark(position);
+	        userMark.userInfo = user;
+
+	        Map.setCenter(position);
+
+	        userMark
+	            .marker
+	            .setIcon(__webpack_require__(86));
+
+	        userMark.infoWindow =  new InfoView({
+	          user: user, 
+	          marker: userMark.marker
+	        })
+
+	        userMark.infoWindow.updateAddress();
+	    };
+
+	    this.getMap = function() {
+	        return Map;
+	    };
+
+	    this.update = function(drivers) {
+	        _log('cloud update [drivers] ->' + JSON.stringify(drivers));
+	    };
+	};
+
+	module.exports = appendEvents(MapMarkers);
+
+
+/***/ },
+/* 86 */
+/***/ function(module, exports) {
+
+	module.exports = "dist/1ac1109ad174b034482342f00a8e7746.svg";
+
+/***/ },
+/* 87 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
 	'use strict';
 
 	var Backbone = __webpack_require__(1);
 	var _ = __webpack_require__(2);
 	var $ = __webpack_require__(3);
 
-	var _log = __webpack_require__(61)('Modal');
-	var styles = __webpack_require__(80);
+	var _log = __webpack_require__(65)('Modal');
+	var styles = __webpack_require__(88);
 
 	var BLUR_STYLE = 'blur-background';
 	var OPEN_STYLE = "open";
@@ -37020,21 +37733,21 @@
 
 
 /***/ },
-/* 80 */
+/* 88 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(81);
+	var content = __webpack_require__(89);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
 	var update = __webpack_require__(73)(content, {});
 	// Hot Module Replacement
 	if(false) {
 		// When the styles change, update the <style> tags
-		module.hot.accept("!!C:\\Users\\cesar\\Documents\\development\\javascript\\wfm-taxi\\client\\node_modules\\css-loader\\index.js!C:\\Users\\cesar\\Documents\\development\\javascript\\wfm-taxi\\client\\www\\style\\modal.css", function() {
-			var newContent = require("!!C:\\Users\\cesar\\Documents\\development\\javascript\\wfm-taxi\\client\\node_modules\\css-loader\\index.js!C:\\Users\\cesar\\Documents\\development\\javascript\\wfm-taxi\\client\\www\\style\\modal.css");
+		module.hot.accept("!!/Users/cvaldez/Documents/devs/wfm-taxi/client/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/wfm-taxi/client/www/style/modal.css", function() {
+			var newContent = require("!!/Users/cvaldez/Documents/devs/wfm-taxi/client/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/wfm-taxi/client/www/style/modal.css");
 			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
 			update(newContent);
 		});
@@ -37043,7 +37756,7 @@
 	}
 
 /***/ },
-/* 81 */
+/* 89 */
 /***/ function(module, exports, __webpack_require__) {
 
 	exports = module.exports = __webpack_require__(72)();
@@ -37051,16 +37764,10 @@
 
 
 	// module
-	exports.push([module.id, ".modal-demo.open {\r\n  height: 100%;\r\n  width: 100%;\r\n  z-index: 4;\r\n  background: black;\r\n  opacity: 0.5 !important;\r\n  border-radius: 0px !important;\r\n}\r\n\r\n.modal-demo {\r\n  border-radius: 100px;\r\n  opacity: 0;\r\n  top: 0px;\r\n  left: 0px;\r\n  position: absolute;\r\n -webkit-transition: width, top, border-radius, opacity 0.4s;\r\n}\r\n\r\n.blur-background {\r\n  filter: blur(3px);\r\n  -webkit-filter: blur(2px);\r\n  -moz-filter: blur(2px);\r\n  -o-filter: blur(2px);\r\n  -ms-filter: blur(2px);\r\n  opacity: 0.8;\r\n}\r\n", ""]);
+	exports.push([module.id, ".modal-demo.open {\n  height: 100%;\n  width: 100%;\n  z-index: 4;\n  background: black;\n  opacity: 0.5 !important;\n  border-radius: 0px !important;\n}\n\n.modal-demo {\n  border-radius: 100px;\n  opacity: 0;\n  top: 0px;\n  left: 0px;\n  position: absolute;\n -webkit-transition: width, top, border-radius, opacity 0.4s;\n}\n\n.blur-background {\n  filter: blur(3px);\n  -webkit-filter: blur(2px);\n  -moz-filter: blur(2px);\n  -o-filter: blur(2px);\n  -ms-filter: blur(2px);\n  opacity: 0.8;\n}\n", ""]);
 
 	// exports
 
-
-/***/ },
-/* 82 */
-/***/ function(module, exports) {
-
-	module.exports = "dist/2583b6a3ef22199e612f2b09f88b6850.svg";
 
 /***/ }
 /******/ ]);

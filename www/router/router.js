@@ -1,6 +1,7 @@
 'use strict';
 var Backbone = require('backbone');
 var $ = require('jquery');
+var _ = require('underscore');
 
 //API's
 var Workflow = require('../api/workflow');
@@ -11,15 +12,17 @@ var geolocationAPI = require('../api/geolocation');
 var User = require('../model/user');
 
 // views
-var MapView = require('../view/map/map');
-var Markers = require('../view/map/marker');
-
 var HomeView = require('../view/home/home');
 var LoginView = require('../view/login/login');
 var NotificationView = require('../view/console/notification');
 
+// map views 
+var MapView = require('../view/map/map');
+var InfoView = require('../view/map/info');
+var Markers = require('../view/map/marker');
+
 var driver = null,
-    coverView =  null,
+    coverView = null,
     marker = null;
 
 var Router = Backbone.Router.extend({
@@ -29,10 +32,10 @@ var Router = Backbone.Router.extend({
     },
 
     initialize: function() {
-        this.$body    = $('body');
+        this.$body = $('body');
         this.$wrapper = $('.site-wrapper');
         this.workflow = null;
-        this.notify   = new NotificationView();
+        this.notify = new NotificationView();
         this.homeView = new HomeView({
             el: this.$body
         });
@@ -40,32 +43,40 @@ var Router = Backbone.Router.extend({
         coverView = require('../view/modal/cover')(this.$wrapper);
 
         geolocationAPI.on('geolocation:working', function() {
-            this.update('Loading...');
+            this.update('Loading, please be patient.');
         }, this.notify);
 
         this.notify.listenToOnce(geolocationAPI, 'geolocation:position', this.notify.hide);
-        this.loginScreen(User);
 
+        this.loginScreen(User);
         this.$body.append(this.notify.el);
     },
 
-    start: function(map){
-      marker = new Markers(map);
-      driver = new Driver(User);
+    start: function(marker, driver) {
 
-      driver.on('update:drivers',marker.update);
-      geolocationAPI.on('geolocation:position', marker.user);
-      /* function(driverList){
-        var user = User.get('user');
-        marker.update(driverList);
-        /*
-        marker.centerAt(user);
-        marker.setOrigin(user);
+        marker.listenTo(driver,
+            'update:drivers',
+            _.partial(marker.markDriversInMap, User));
 
-      });*/
+        marker.listenToOnce(geolocationAPI,
+            'geolocation:position',
+            _.partial(marker.markUserInMap, User));
 
-      geolocationAPI.on('geolocation:position', driver.publishLocation);
-      geolocationAPI.getLocation();
+        geolocationAPI.on('geolocation:position', driver.publishLocation);
+
+        geolocationAPI.getLocation();
+        driver.getDriverStatus();
+    },
+
+    initMapAPI: function(user, map) {
+        marker = new Markers(map, InfoView);
+        driver = new Driver(User);
+
+        user.on('user:found', function(){
+          this.start(marker, driver);
+        }, this);
+
+        user.checkCredentials();
     },
 
     loginScreen: function(user) {
@@ -88,9 +99,7 @@ var Router = Backbone.Router.extend({
             geolocationAPI: geolocationAPI
         });
 
-        this.mapView.on('map:created', this.start);
-        this.mapView.on('map:resolve:address', User.checkCredentials, User);
-        this.mapView.on('map:resolve:address', this.mapView.setUserInfo);
+        this.mapView.on('map:created', _.partial(this.initMapAPI, User), this);
 
         this.mapView.loadAPI();
     }
