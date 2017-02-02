@@ -28058,11 +28058,11 @@
 
 	        // CONFIGURATION
 	        // menu button color on touch
-	        this.buttonFocusColor = '#555555';
+	        this.buttonFocusColor = '#073c69';
 	        this.blurValue = 5;
 
 	        // allow clicking main content to close menu when open
-	        this.$mainContainer.on('click', this.mainContainerClose.bind(this))
+	        this.$mainContainer.on('click', this.mainContainerClose.bind(this));
 	    },
 
 	    render: function() {
@@ -28095,9 +28095,11 @@
 	    },
 
 	    toggleMenu: function(e) {
-	    	if(e){
-	    		e.stopPropagation();
-	    	}
+	        if (e) {
+	            e.stopPropagation();
+	        }
+
+	        $('#menu-button-icon').toggleClass('open');
 
 	        this.$mainContainer.css({
 	            '-webkit-transform': 'translateX(' + this.width + 'px)',
@@ -28111,13 +28113,13 @@
 	        this.menuOpen = !this.menuOpen;
 
 	        // toggle width value to reverse animation direction
-	        this.width = this.width > 0 ? 0 : (this.$mainContainer.width() / 100 * 83);    
+	        this.width = this.width > 0 ? 0 : (this.$mainContainer.width() / 100 * 83);
 	    },
 
 	    mainContainerClose: function() {
-	    	if(!this.menuOpen) {
-	    		this.toggleMenu();
-	    	}
+	        if (!this.menuOpen) {
+	            this.toggleMenu();
+	        }
 	    },
 
 	    toggleBlur: function() {
@@ -28127,7 +28129,7 @@
 
 	    toggleButtonColor: function(evt) {
 	        var color = evt.type === 'touchstart' ? this.buttonFocusColor : '#ffffff';
-	        $('#menu-button-svg').css('fill', color);
+	        $('#menu-button-icon span').css('background', color);
 	    }
 	};
 
@@ -28167,7 +28169,7 @@
 
 
 	// module
-	exports.push([module.id, ".menu-button {\n    position: absolute;\n    top: 4px;\n    left: 3%;\n    z-index: 1000;\n    background-color: transparent;\n    height: 60px;\n    width: 60px;\n}\n\n#menu-button-svg {\n    height: 82%;\n    width: 82%;\n    margin-top: 9%;\n    margin-left: 9%;\n}\n\n.side-menu {\n    z-index: 1;\n    position: absolute;\n    height: 100%;\n    width: 83%;\n    background-color: #ffffff;\n    height: 100%;\n    top: 0;\n}\n\n.menu-list-item {\n    height: 60px;\n    padding-top: 16px;\n    padding-bottom: 15px;\n    padding-left: 20px;\n    background-color: #50bbe6;\n    color: #ffffff;\n    border-bottom: 1px solid #ffffff;\n    font-size: 18px;\n}\n\n/* add main content (element that will slide to show side menu) class here to configure easing/animation */\n.site-wrapper {\n    transition-timing-function: ease-out;\n    transition: 0.35s;\n}", ""]);
+	exports.push([module.id, ".menu-button {\n    position: absolute;\n    top: 4px;\n    left: 3%;\n    z-index: 1000;\n    background-color: transparent;\n    height: 50px;\n    width: 50px;\n}\n\n.side-menu {\n    z-index: 1;\n    position: absolute;\n    height: 100%;\n    width: 83%;\n    background-color: #ffffff;\n    height: 100%;\n    top: 0;\n}\n\n.menu-list-item {\n    height: 60px;\n    padding-top: 16px;\n    padding-bottom: 15px;\n    padding-left: 20px;\n    background-color: #50bbe6;\n    color: #ffffff;\n    border-bottom: 1px solid #ffffff;\n    font-size: 18px;\n}\n\n\n/* add main content (element that will slide to show side menu) class here to configure easing/animation */\n\n.site-wrapper {\n    transition-timing-function: ease-out;\n    transition: 0.35s;\n}\n\n#menu-button-icon {\n    width: 60%;\n    height: 50%;\n    margin-top: 20%;\n    margin-left: 20%;\n    position: relative;\n    -webkit-transform: rotate(0deg);\n    -moz-transform: rotate(0deg);\n    -o-transform: rotate(0deg);\n    transform: rotate(0deg);\n    -webkit-transition: .5s ease-in-out;\n    -moz-transition: .5s ease-in-out;\n    -o-transition: .5s ease-in-out;\n    transition: .5s ease-in-out;\n    cursor: pointer;\n}\n\n#menu-button-icon span {\n    display: block;\n    position: absolute;\n    height: 4px;\n    width: 100%;\n    background: #ffffff;\n    border-radius: 5px;\n    opacity: 1;\n    left: 0;\n    -webkit-transform: rotate(0deg);\n    -moz-transform: rotate(0deg);\n    -o-transform: rotate(0deg);\n    transform: rotate(0deg);\n    -webkit-transition: .25s ease-in-out;\n    -moz-transition: .25s ease-in-out;\n    -o-transition: .25s ease-in-out;\n    transition: .25s ease-in-out;\n}\n\n#menu-button-icon span:nth-child(1) {\n    top: 0px;\n}\n\n#menu-button-icon span:nth-child(2),\n#menu-button-icon span:nth-child(3) {\n    top: 10px;\n}\n\n#menu-button-icon span:nth-child(4) {\n    top: 20px;\n}\n\n#menu-button-icon.open span:nth-child(1) {\n    top: 18px;\n    width: 0%;\n    left: 50%;\n}\n\n#menu-button-icon.open span:nth-child(2) {\n    -webkit-transform: rotate(45deg);\n    -moz-transform: rotate(45deg);\n    -o-transform: rotate(45deg);\n    transform: rotate(45deg);\n}\n\n#menu-button-icon.open span:nth-child(3) {\n    -webkit-transform: rotate(-45deg);\n    -moz-transform: rotate(-45deg);\n    -o-transform: rotate(-45deg);\n    transform: rotate(-45deg);\n}\n\n#menu-button-icon.open span:nth-child(4) {\n    top: 18px;\n    width: 0%;\n    left: 50%;\n}\n", ""]);
 
 	// exports
 
@@ -28937,7 +28939,7 @@
 	module.exports = function(obj){
 	var __t,__p='',__j=Array.prototype.join,print=function(){__p+=__j.call(arguments,'');};
 	with(obj||{}){
-	__p+='<svg id="menu-button-svg" fill="#FFFFFF" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">\n    <path d="M0 0h24v24H0z" fill="none"/>\n    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>\n</svg>';
+	__p+='<!-- this is our animatable button -->\n<div id="menu-button-icon">\n  <span></span>\n  <span></span>\n  <span></span>\n  <span></span>\n</div>';
 	}
 	return __p;
 	};

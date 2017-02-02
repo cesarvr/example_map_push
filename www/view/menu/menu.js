@@ -33,11 +33,11 @@ var Menu = {
 
         // CONFIGURATION
         // menu button color on touch
-        this.buttonFocusColor = '#555555';
+        this.buttonFocusColor = '#073c69';
         this.blurValue = 5;
 
         // allow clicking main content to close menu when open
-        this.$mainContainer.on('click', this.mainContainerClose.bind(this))
+        this.$mainContainer.on('click', this.mainContainerClose.bind(this));
     },
 
     render: function() {
@@ -70,9 +70,11 @@ var Menu = {
     },
 
     toggleMenu: function(e) {
-    	if(e){
-    		e.stopPropagation();
-    	}
+        if (e) {
+            e.stopPropagation();
+        }
+
+        $('#menu-button-icon').toggleClass('open');
 
         this.$mainContainer.css({
             '-webkit-transform': 'translateX(' + this.width + 'px)',
@@ -86,13 +88,13 @@ var Menu = {
         this.menuOpen = !this.menuOpen;
 
         // toggle width value to reverse animation direction
-        this.width = this.width > 0 ? 0 : (this.$mainContainer.width() / 100 * 83);    
+        this.width = this.width > 0 ? 0 : (this.$mainContainer.width() / 100 * 83);
     },
 
     mainContainerClose: function() {
-    	if(!this.menuOpen) {
-    		this.toggleMenu();
-    	}
+        if (!this.menuOpen) {
+            this.toggleMenu();
+        }
     },
 
     toggleBlur: function() {
@@ -102,7 +104,7 @@ var Menu = {
 
     toggleButtonColor: function(evt) {
         var color = evt.type === 'touchstart' ? this.buttonFocusColor : '#ffffff';
-        $('#menu-button-svg').css('fill', color);
+        $('#menu-button-icon span').css('background', color);
     }
 };
 
