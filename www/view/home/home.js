@@ -15,7 +15,7 @@ var Home = {
     callDriver: function(){
       _log('Calling Driver');
       this.trigger('open:modal');
-    },
+    }
 
 };
 
