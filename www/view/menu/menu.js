@@ -34,8 +34,6 @@ var Menu = {
         // CONFIGURATION
         // menu button color on touch
         this.buttonFocusColor = '#555555';
-        // speed of slide, blur value
-        this.speed = 5;
         this.blurValue = 5;
 
         // allow clicking main content to close menu when open

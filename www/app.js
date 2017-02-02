@@ -4,7 +4,7 @@ var Backbone = require('backbone');
 var AgendaRouter = require('./router/router');
 var _ = require('underscore');
 var $ = require('jquery');
-var FastClick = require('./lib/fastclick');
+var FastClick = require('fastclick');
 
 function init(){
   new AgendaRouter();

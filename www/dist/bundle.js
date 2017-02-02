@@ -50,7 +50,7 @@
 	var AgendaRouter = __webpack_require__(4);
 	var _ = __webpack_require__(2);
 	var $ = __webpack_require__(3);
-	var FastClick = __webpack_require__(39);
+	var FastClick = __webpack_require__(45);
 
 	function init(){
 	  new AgendaRouter();
@@ -28059,8 +28059,6 @@
 	        // CONFIGURATION
 	        // menu button color on touch
 	        this.buttonFocusColor = '#555555';
-	        // speed of slide, blur value
-	        this.speed = 5;
 	        this.blurValue = 5;
 
 	        // allow clicking main content to close menu when open
@@ -28169,7 +28167,7 @@
 
 
 	// module
-	exports.push([module.id, ".menu-button {\n    position: absolute;\n    top: 4px;\n    left: 3%;\n    z-index: 1000;\n    background-color: transparent;\n    height: 60px;\n    width: 60px;\n}\n\n#menu-button-svg {\n    height: 82%;\n    width: 82%;\n    margin-top: 9%;\n    margin-left: 9%;\n}\n\n.side-menu {\n    z-index: 1;\n    position: absolute;\n    height: 100%;\n    width: 83%;\n    background-color: #ffffff;\n    height: 100%;\n    top: 0;\n}\n\n.menu-list-item {\n    height: 60px;\n    padding-top: 16px;\n    padding-bottom: 15px;\n    padding-left: 20px;\n    background-color: #50bbe6;\n    color: #ffffff;\n    border-bottom: 1px solid #ffffff;\n    font-size: 18px;\n}", ""]);
+	exports.push([module.id, ".menu-button {\n    position: absolute;\n    top: 4px;\n    left: 3%;\n    z-index: 1000;\n    background-color: transparent;\n    height: 60px;\n    width: 60px;\n}\n\n#menu-button-svg {\n    height: 82%;\n    width: 82%;\n    margin-top: 9%;\n    margin-left: 9%;\n}\n\n.side-menu {\n    z-index: 1;\n    position: absolute;\n    height: 100%;\n    width: 83%;\n    background-color: #ffffff;\n    height: 100%;\n    top: 0;\n}\n\n.menu-list-item {\n    height: 60px;\n    padding-top: 16px;\n    padding-bottom: 15px;\n    padding-left: 20px;\n    background-color: #50bbe6;\n    color: #ffffff;\n    border-bottom: 1px solid #ffffff;\n    font-size: 18px;\n}\n\n/* add main content (element that will slide to show side menu) class here to configure easing/animation */\n.site-wrapper {\n    transition-timing-function: ease-out;\n    transition: 0.35s;\n}", ""]);
 
 	// exports
 
@@ -28928,7 +28926,25 @@
 
 
 /***/ },
-/* 39 */
+/* 39 */,
+/* 40 */,
+/* 41 */,
+/* 42 */,
+/* 43 */,
+/* 44 */
+/***/ function(module, exports) {
+
+	module.exports = function(obj){
+	var __t,__p='',__j=Array.prototype.join,print=function(){__p+=__j.call(arguments,'');};
+	with(obj||{}){
+	__p+='<svg id="menu-button-svg" fill="#FFFFFF" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">\n    <path d="M0 0h24v24H0z" fill="none"/>\n    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>\n</svg>';
+	}
+	return __p;
+	};
+
+
+/***/ },
+/* 45 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;;(function () {
@@ -29772,23 +29788,6 @@
 			window.FastClick = FastClick;
 		}
 	}());
-
-
-/***/ },
-/* 40 */,
-/* 41 */,
-/* 42 */,
-/* 43 */,
-/* 44 */
-/***/ function(module, exports) {
-
-	module.exports = function(obj){
-	var __t,__p='',__j=Array.prototype.join,print=function(){__p+=__j.call(arguments,'');};
-	with(obj||{}){
-	__p+='<svg id="menu-button-svg" fill="#FFFFFF" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">\n    <path d="M0 0h24v24H0z" fill="none"/>\n    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>\n</svg>';
-	}
-	return __p;
-	};
 
 
 /***/ }

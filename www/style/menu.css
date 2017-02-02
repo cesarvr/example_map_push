@@ -35,3 +35,9 @@
     border-bottom: 1px solid #ffffff;
     font-size: 18px;
 }
+
+/* add main content (element that will slide to show side menu) class here to configure easing/animation */
+.site-wrapper {
+    transition-timing-function: ease-out;
+    transition: 0.35s;
+}
