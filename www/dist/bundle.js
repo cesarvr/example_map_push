@@ -13814,7 +13814,6 @@
 
 	        this.$body = $('body');
 	        this.$wrapper = $('.site-wrapper');
-	        this.$menuButton = $('.menu-button');
 	        this.$blurElement = $('.map');
 
 	        this.workflow = null;
@@ -28046,37 +28045,36 @@
 	        'touchend .menu-button': 'toggleButtonColor'
 	    },
 
-	    // TODO - close blur etc on swipe close, tap to close, animate button
-
 	    initialize: function(options) {
 	        var self = this;
 
-	        // element to slide, menu button, element to blur on drawer open
+	        // element to slide and element to blur on drawer open
 	        this.$mainContainer = options.mainContainer;
-	        this.$menuButton = options.menuButton;
 	        this.$blurElement = options.blurElement;
 
-	        // change menu button to this color on touch
-	        this.buttonFocusColor = '#555555';
-
-	        this.options = {};
 	        this.width = (this.$mainContainer.width() / 100 * 83);
 	        this.blur = true;
 	        this.menuOpen = true;
 
-	        // config speed of slide, blur value
+	        // CONFIGURATION
+	        // menu button color on touch
+	        this.buttonFocusColor = '#555555';
+	        // speed of slide, blur value
 	        this.speed = 5;
 	        this.blurValue = 5;
+
+	        // allow clicking main content to close menu when open
+	        this.$mainContainer.on('click', this.mainContainerClose.bind(this))
 	    },
 
 	    render: function() {
 	        this.$el.html(template());
-	        this.$mainContainer.append(this.createMenu());
+	        this.$mainContainer.append(this.createMenuButton());
 
 	        return this;
 	    },
 
-	    createMenu: function() {
+	    createMenuButton: function() {
 	        return $('<div>').addClass('menu-button')
 	            .append(button())
 	            .on('click', this.toggleMenu.bind(this))
@@ -28086,38 +28084,42 @@
 
 	    hide: function() {
 	        $('.menu-button').hide();
+	        this.$el.find('.side-menu').hide();
 	    },
 
 	    show: function() {
 	        $('.menu-button').show();
+	        this.$el.find('.side-menu').show();
 	    },
 
 	    openLink: function() {
 	        console.log('boom');
 	    },
 
-	    toggleMenu: function() {
-	        var self = this;
+	    toggleMenu: function(e) {
+	    	if(e){
+	    		e.stopPropagation();
+	    	}
 
 	        this.$mainContainer.css({
-	            '-webkit-transform': 'translateX(' + self.width + 'px)',
-	            '-moz-transform': 'translateX(' + self.width + 'px)',
-	            '-ms-transform': 'translateX(' + self.width + 'px)',
-	            '-o-transform': 'translateX(' + self.width + 'px)',
-	            'transform': 'translateX(' + self.width + 'px)'
+	            '-webkit-transform': 'translateX(' + this.width + 'px)',
+	            '-moz-transform': 'translateX(' + this.width + 'px)',
+	            '-ms-transform': 'translateX(' + this.width + 'px)',
+	            '-o-transform': 'translateX(' + this.width + 'px)',
+	            'transform': 'translateX(' + this.width + 'px)'
 	        });
 
 	        this.toggleBlur();
-	        //this.toggleListener();
+	        this.menuOpen = !this.menuOpen;
 
-	        // toggle width values
+	        // toggle width value to reverse animation direction
 	        this.width = this.width > 0 ? 0 : (this.$mainContainer.width() / 100 * 83);    
 	    },
 
-	    toggleListener: function() {
-	    	// toggle listener to close
-	        this.menuOpen ? this.$mainContainer.on('click', this.toggleMenu.bind(this)) : this.$mainContainer.off('click', this.toggleMenu.bind(this));
-	        this.menuOpen = !this.menuOpen;
+	    mainContainerClose: function() {
+	    	if(!this.menuOpen) {
+	    		this.toggleMenu();
+	    	}
 	    },
 
 	    toggleBlur: function() {

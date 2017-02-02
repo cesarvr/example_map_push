@@ -32,7 +32,6 @@ var Router = Backbone.Router.extend({
 
         this.$body = $('body');
         this.$wrapper = $('.site-wrapper');
-        this.$menuButton = $('.menu-button');
         this.$blurElement = $('.map');
 
         this.workflow = null;
