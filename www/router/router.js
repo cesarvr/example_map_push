@@ -13,6 +13,7 @@ var User = require('../model/user');
 
 // views
 var HomeView = require('../view/home/home');
+var MenuView = require('../view/menu/menu');
 var LoginView = require('../view/login/login');
 var NotificationView = require('../view/console/notification');
 
@@ -34,10 +35,19 @@ var Router = Backbone.Router.extend({
     initialize: function() {
         this.$body = $('body');
         this.$wrapper = $('.site-wrapper');
+        this.$blurElement = $('.map');
         this.workflow = null;
+
         this.notify = new NotificationView();
+
         this.homeView = new HomeView({
-            el: this.$body
+            el: this.$menu
+        });
+
+        // load menu view specifying the element to slide & optional element to blur
+        this.menuView = new MenuView({
+            mainContainer: this.$wrapper,
+            blurElement: this.$blurElement
         });
 
         coverView = require('../view/modal/cover')(this.$wrapper);
@@ -76,6 +86,7 @@ var Router = Backbone.Router.extend({
           this.start(marker, driver);
         }, this);
 
+
         user.checkCredentials();
     },
 
@@ -85,9 +96,10 @@ var Router = Backbone.Router.extend({
         });
 
         this.$body.append(login.render().el);
+
         coverView(login);
 
-        //user auth ditacte the behavior of the login.
+        //user auth dictate the behavior of the login.
         user.on('user:not_found', login.show, login);
         user.on('user:found', login.close, login);
     },
@@ -99,9 +111,13 @@ var Router = Backbone.Router.extend({
             geolocationAPI: geolocationAPI
         });
 
-        this.mapView.on('map:created', _.partial(this.initMapAPI, User), this);
-
         this.mapView.loadAPI();
+        
+        this.mapView.on('map:created', _.partial(this.initMapAPI, User), this);
+        this.mapView.on('map:ready', geolocationAPI.getLocation, geolocationAPI);
+        this.mapView.on('map:ready', this.$body.append(this.menuView.render().el));
+        this.mapView.on('map:resolve:address', User.checkCredentials, User);
+        this.mapView.on('map:resolve:address', this.mapView.setUserInfo);
     }
 });
 

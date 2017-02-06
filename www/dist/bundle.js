@@ -50,10 +50,12 @@
 	var AgendaRouter = __webpack_require__(4);
 	var _ = __webpack_require__(2);
 	var $ = __webpack_require__(3);
+	var FastClick = __webpack_require__(45);
 
 	function init(){
 	  new AgendaRouter();
 	  Backbone.history.start();
+	  FastClick.attach(document.body);
 	}
 
 	//this forbid the user to drag the main-container.
@@ -13784,22 +13786,23 @@
 	var _ = __webpack_require__(2);
 
 	//API's
-	var Workflow = __webpack_require__(5);
-	var Driver = __webpack_require__(9);
-	var geolocationAPI = __webpack_require__(66);
+	var Workflow = __webpack_require__(7);
+	var Driver = __webpack_require__(48);
+	var geolocationAPI = __webpack_require__(35);
 
 	//model
-	var User = __webpack_require__(67);
+	var User = __webpack_require__(5);
 
 	// views
-	var HomeView = __webpack_require__(68);
-	var LoginView = __webpack_require__(69);
-	var NotificationView = __webpack_require__(75);
+	var HomeView = __webpack_require__(13);
+	var MenuView = __webpack_require__(14);
+	var LoginView = __webpack_require__(21);
+	var NotificationView = __webpack_require__(25);
 
 	// map views 
-	var MapView = __webpack_require__(79);
-	var InfoView = __webpack_require__(81);
-	var Markers = __webpack_require__(85);
+	var MapView = __webpack_require__(11);
+	var InfoView = __webpack_require__(106);
+	var Markers = __webpack_require__(49);
 
 	var driver = null,
 	    coverView = null,
@@ -13814,13 +13817,22 @@
 	    initialize: function() {
 	        this.$body = $('body');
 	        this.$wrapper = $('.site-wrapper');
+	        this.$blurElement = $('.map');
 	        this.workflow = null;
+
 	        this.notify = new NotificationView();
+
 	        this.homeView = new HomeView({
-	            el: this.$body
+	            el: this.$menu
 	        });
 
-	        coverView = __webpack_require__(87)(this.$wrapper);
+	        // load menu view specifying the element to slide & optional element to blur
+	        this.menuView = new MenuView({
+	            mainContainer: this.$wrapper,
+	            blurElement: this.$blurElement
+	        });
+
+	        coverView = __webpack_require__(36)(this.$wrapper);
 
 	        geolocationAPI.on('geolocation:working', function() {
 	            this.update('Loading, please be patient.');
@@ -13856,6 +13868,7 @@
 	          this.start(marker, driver);
 	        }, this);
 
+
 	        user.checkCredentials();
 	    },
 
@@ -13865,9 +13878,10 @@
 	        });
 
 	        this.$body.append(login.render().el);
+
 	        coverView(login);
 
-	        //user auth ditacte the behavior of the login.
+	        //user auth dictate the behavior of the login.
 	        user.on('user:not_found', login.show, login);
 	        user.on('user:found', login.close, login);
 	    },
@@ -13879,9 +13893,13 @@
 	            geolocationAPI: geolocationAPI
 	        });
 
-	        this.mapView.on('map:created', _.partial(this.initMapAPI, User), this);
-
 	        this.mapView.loadAPI();
+	        
+	        this.mapView.on('map:created', _.partial(this.initMapAPI, User), this);
+	        this.mapView.on('map:ready', geolocationAPI.getLocation, geolocationAPI);
+	        this.mapView.on('map:ready', this.$body.append(this.menuView.render().el));
+	        this.mapView.on('map:resolve:address', User.checkCredentials, User);
+	        this.mapView.on('map:resolve:address', this.mapView.setUserInfo);
 	    }
 	});
 
@@ -13892,13 +13910,83 @@
 /* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
+	'use strict';
+
+	var _ = __webpack_require__(2);
+	var Backbone = __webpack_require__(1);
+	var _log = __webpack_require__(6)('user-model');
+
+	var User = {
+
+	  defaults: {
+	    user: '',
+	    phone: ''
+	  },
+
+	  initialize: function(){
+	    var userDB = localStorage.getItem('user');
+
+	    if(!_.isEmpty(userDB))
+	      this.attributes = JSON.parse(userDB);
+	    else
+	      _log('User not found...');
+	  },
+
+	  checkCredentials: function(){
+	    var invalid = _.values(this.attributes).filter(_.isEmpty).length > 0;
+
+	    if(invalid)
+	      this.trigger('user:not_found', this);
+	    else
+	      this.trigger('user:found', this);
+	  },
+
+	  saveInLocalStorage: function(){
+	    if(this.isValid()) {
+	      var userDB = localStorage.setItem('user', JSON.stringify(this.attributes));
+	      this.checkCredentials();
+	    }
+	  },
+
+	  validate: function(attrs) {
+	    delete attrs.id;
+	    var invalid = _.values(attrs).filter(_.isEmpty).length > 0;
+
+	    return invalid;
+	  }
+	};
+
+	var UserModel = Backbone.Model.extend(User);
+
+	module.exports = new UserModel();
+
+
+/***/ },
+/* 6 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	var _log = function(title) {
+	    return function(message) {
+	        console.log(Date.now()+': ', title || 'generic', ': ', message);
+	    }
+	};
+
+	module.exports = _log;
+
+
+/***/ },
+/* 7 */
+/***/ function(module, exports, __webpack_require__) {
+
 	'use strict'
 
 	var _ = __webpack_require__(2);
-	var factory = __webpack_require__(6);
-	var $fh = __webpack_require__(7);
+	var factory = __webpack_require__(8);
+	var $fh = __webpack_require__(9);
 
-	var util = __webpack_require__(8);
+	var util = __webpack_require__(10);
 	var $ = __webpack_require__(3);
 
 	var mock = {
@@ -13979,7 +14067,7 @@
 
 
 /***/ },
-/* 6 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -13996,7 +14084,7 @@
 
 
 /***/ },
-/* 7 */
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var require;var require;!function(e){if(true)module.exports=e();else if("function"==typeof define&&define.amd)define(e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),f.feedhenry=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return require(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
@@ -27580,7 +27668,7 @@
 	});
 
 /***/ },
-/* 8 */
+/* 10 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -27618,14 +27706,1956 @@
 
 
 /***/ },
-/* 9 */
+/* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	var socketIO = __webpack_require__(10);
+
+	var Backbone = __webpack_require__(1);
+	var $script = __webpack_require__(12);
+	var $ = __webpack_require__(3);
 	var _ = __webpack_require__(2);
-	var appendEvents = __webpack_require__(6);
-	var _log = __webpack_require__(65)('DriversSocket');
+
+	var _log = __webpack_require__(6)('MapView');
+
+	// MapView Class listen to the following events
+	var MapView = {
+
+	    GMAP_API: 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDoez83-bCpLCFESHMiNpfkBrplOV36Hbs',
+
+
+	    /*  We need to inyect here a geolocation API, we listen for
+	     *  the following events:
+	     *
+	     *    geolocation:position
+	     *
+	     *      params  {
+	     *        lat: 'latitude',
+	     *        lng: 'longitude'
+	     *      }
+	     *
+	     *  Take a look at api/geo.js
+	     */
+
+	    initialize: function(options) {
+	        if (_.isEmpty(options.geolocationAPI)) throw "Not geolocationAPI Injected";
+
+	        var geo = options.geolocationAPI;
+
+
+	        this.listenTo(geo, 'geolocation:position', this.getAddress);
+
+	        this.on('map:api:downloaded', this.start);
+	    },
+
+	    /*
+	     * Start
+	     * Instanciate the Google Map API.
+	     *
+	     */
+	    start: function() {
+
+	        this.geocoder = new google.maps.Geocoder;
+
+	        this.map = new google.maps.Map(this.$el[0], {
+	            zoom: 11,
+	            disableDefaultUI: true,
+	            gestureHandling: "greedy",
+	            center: {
+	                lat: 18.7357,
+	                lng: -70.1627
+	            }
+	        });
+
+	        google.maps.event.addDomListener(this.$el[0], 'touchstart', this.onTouchStart.bind(this));
+	        google.maps.event.addDomListener(this.$el[0], 'touchend', this.onTouchEnd.bind(this));
+
+	        this.trigger('map:created', this.map);
+
+	    },
+
+	    /*
+	      The map is being touch.
+	    */
+	    onTouchStart: function(){
+	      this.trigger('map:touch:start');
+	      return false; // bubble up the touchstart event, means this don't freeze the UI.
+	    },
+
+	    /*
+	      The map is being touch.
+	    */
+	    onTouchEnd: function(){
+	      this.trigger('map:touch:end');
+	      return false; // bubble up the touchstart event, means this don't freeze the UI.
+	    },
+
+
+	    /*
+	     * Download the Google Map API V3 async and start working, when the API is downloaded
+	     * we trigger an map:api:downloaded event.
+	     */
+	    loadAPI: function() {
+
+	        $script(this.GMAP_API, function() {
+	            this.trigger('map:api:downloaded');
+	        }.bind(this));
+
+	        return this;
+	    },
+
+	    /*
+	     * Quick and dirty example of using inverse Geocode Google API.
+	     *
+	     * When google maps resolve the address, we trigger an map:resolve:address and we pass a string parameter with
+	     * the address.
+	     */
+	    getAddress: function(position) {
+	        var url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=$position$&key=$key$";
+
+	        this.geocoder.geocode({
+	            'location': position
+	        }, function(results, status) {
+	            if (status === google.maps.GeocoderStatus.OK)
+	                this.trigger('map:resolve:address', results[0].formatted_address);
+	        }.bind(this));
+	    }
+	};
+
+	module.exports = Backbone.View.extend(MapView);
+
+
+/***/ },
+/* 12 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
+	  * $script.js JS loader & dependency manager
+	  * https://github.com/ded/script.js
+	  * (c) Dustin Diaz 2014 | License MIT
+	  */
+
+	(function (name, definition) {
+	  if (typeof module != 'undefined' && module.exports) module.exports = definition()
+	  else if (true) !(__WEBPACK_AMD_DEFINE_FACTORY__ = (definition), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.call(exports, __webpack_require__, exports, module)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__))
+	  else this[name] = definition()
+	})('$script', function () {
+	  var doc = document
+	    , head = doc.getElementsByTagName('head')[0]
+	    , s = 'string'
+	    , f = false
+	    , push = 'push'
+	    , readyState = 'readyState'
+	    , onreadystatechange = 'onreadystatechange'
+	    , list = {}
+	    , ids = {}
+	    , delay = {}
+	    , scripts = {}
+	    , scriptpath
+	    , urlArgs
+
+	  function every(ar, fn) {
+	    for (var i = 0, j = ar.length; i < j; ++i) if (!fn(ar[i])) return f
+	    return 1
+	  }
+	  function each(ar, fn) {
+	    every(ar, function (el) {
+	      return !fn(el)
+	    })
+	  }
+
+	  function $script(paths, idOrDone, optDone) {
+	    paths = paths[push] ? paths : [paths]
+	    var idOrDoneIsDone = idOrDone && idOrDone.call
+	      , done = idOrDoneIsDone ? idOrDone : optDone
+	      , id = idOrDoneIsDone ? paths.join('') : idOrDone
+	      , queue = paths.length
+	    function loopFn(item) {
+	      return item.call ? item() : list[item]
+	    }
+	    function callback() {
+	      if (!--queue) {
+	        list[id] = 1
+	        done && done()
+	        for (var dset in delay) {
+	          every(dset.split('|'), loopFn) && !each(delay[dset], loopFn) && (delay[dset] = [])
+	        }
+	      }
+	    }
+	    setTimeout(function () {
+	      each(paths, function loading(path, force) {
+	        if (path === null) return callback()
+	        
+	        if (!force && !/^https?:\/\//.test(path) && scriptpath) {
+	          path = (path.indexOf('.js') === -1) ? scriptpath + path + '.js' : scriptpath + path;
+	        }
+	        
+	        if (scripts[path]) {
+	          if (id) ids[id] = 1
+	          return (scripts[path] == 2) ? callback() : setTimeout(function () { loading(path, true) }, 0)
+	        }
+
+	        scripts[path] = 1
+	        if (id) ids[id] = 1
+	        create(path, callback)
+	      })
+	    }, 0)
+	    return $script
+	  }
+
+	  function create(path, fn) {
+	    var el = doc.createElement('script'), loaded
+	    el.onload = el.onerror = el[onreadystatechange] = function () {
+	      if ((el[readyState] && !(/^c|loade/.test(el[readyState]))) || loaded) return;
+	      el.onload = el[onreadystatechange] = null
+	      loaded = 1
+	      scripts[path] = 2
+	      fn()
+	    }
+	    el.async = 1
+	    el.src = urlArgs ? path + (path.indexOf('?') === -1 ? '?' : '&') + urlArgs : path;
+	    head.insertBefore(el, head.lastChild)
+	  }
+
+	  $script.get = create
+
+	  $script.order = function (scripts, id, done) {
+	    (function callback(s) {
+	      s = scripts.shift()
+	      !scripts.length ? $script(s, id, done) : $script(s, callback)
+	    }())
+	  }
+
+	  $script.path = function (p) {
+	    scriptpath = p
+	  }
+	  $script.urlArgs = function (str) {
+	    urlArgs = str;
+	  }
+	  $script.ready = function (deps, ready, req) {
+	    deps = deps[push] ? deps : [deps]
+	    var missing = [];
+	    !each(deps, function (dep) {
+	      list[dep] || missing[push](dep);
+	    }) && every(deps, function (dep) {return list[dep]}) ?
+	      ready() : !function (key) {
+	      delay[key] = delay[key] || []
+	      delay[key][push](ready)
+	      req && req(missing)
+	    }(deps.join('|'))
+	    return $script
+	  }
+
+	  $script.done = function (idOrDone) {
+	    $script([null], idOrDone)
+	  }
+
+	  return $script
+	});
+
+
+/***/ },
+/* 13 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var Backbone = __webpack_require__(1);
+	var _ = __webpack_require__(2);
+	var $ = __webpack_require__(3);
+
+	var _log = __webpack_require__(6)('home');
+
+	var Home = {
+
+	    events: {
+	        'click .down.call': 'callDriver'
+	    },
+
+	    callDriver: function(){
+	      _log('Calling Driver');
+	      this.trigger('open:modal');
+	    }
+
+	};
+
+	module.exports = Backbone.View.extend(Home);
+
+
+/***/ },
+/* 14 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var Backbone = __webpack_require__(1);
+	var _ = __webpack_require__(2);
+	var $ = __webpack_require__(3);
+
+	var styles = __webpack_require__(16);
+	var button = __webpack_require__(44);
+	var template = __webpack_require__(20);
+	var _log = __webpack_require__(6)('menu');
+
+	var Menu = {
+
+	    className: 'menu-container',
+
+	    events: {
+	        'click .menu-button': 'toggleMenu',
+	        'click .side-menu': 'openLink',
+	        'touchstart .menu-button': 'toggleButtonColor',
+	        'touchend .menu-button': 'toggleButtonColor'
+	    },
+
+	    initialize: function(options) {
+	        var self = this;
+
+	        // element to slide and element to blur on drawer open
+	        this.$mainContainer = options.mainContainer;
+	        this.$blurElement = options.blurElement;
+
+	        this.width = (this.$mainContainer.width() / 100 * 83);
+	        this.blur = true;
+	        this.menuOpen = true;
+
+	        // CONFIGURATION
+	        // menu button color on touch
+	        this.buttonFocusColor = '#073c69';
+	        this.blurValue = 5;
+
+	        // allow clicking main content to close menu when open
+	        this.$mainContainer.on('click', this.mainContainerClose.bind(this));
+	    },
+
+	    render: function() {
+	        this.$el.html(template());
+	        this.$mainContainer.append(this.createMenuButton());
+
+	        return this;
+	    },
+
+	    createMenuButton: function() {
+	        return $('<div>').addClass('menu-button')
+	            .append(button())
+	            .on('click', this.toggleMenu.bind(this))
+	            .on('touchstart', this.toggleButtonColor.bind(this))
+	            .on('touchend', this.toggleButtonColor.bind(this));
+	    },
+
+	    hide: function() {
+	        $('.menu-button').hide();
+	        this.$el.find('.side-menu').hide();
+	    },
+
+	    show: function() {
+	        $('.menu-button').show();
+	        this.$el.find('.side-menu').show();
+	    },
+
+	    openLink: function() {
+	        console.log('boom');
+	    },
+
+	    toggleMenu: function(e) {
+	        if (e) {
+	            e.stopPropagation();
+	        }
+
+	        $('#menu-button-icon').toggleClass('open');
+
+	        this.$mainContainer.css({
+	            '-webkit-transform': 'translateX(' + this.width + 'px)',
+	            '-moz-transform': 'translateX(' + this.width + 'px)',
+	            '-ms-transform': 'translateX(' + this.width + 'px)',
+	            '-o-transform': 'translateX(' + this.width + 'px)',
+	            'transform': 'translateX(' + this.width + 'px)'
+	        });
+
+	        this.toggleBlur();
+	        this.menuOpen = !this.menuOpen;
+
+	        // toggle width value to reverse animation direction
+	        this.width = this.width > 0 ? 0 : (this.$mainContainer.width() / 100 * 83);
+	    },
+
+	    mainContainerClose: function() {
+	        if (!this.menuOpen) {
+	            this.toggleMenu();
+	        }
+	    },
+
+	    toggleBlur: function() {
+	        this.blur ? this.$blurElement.css('filter', 'blur(' + this.blurValue + 'px)') : this.$blurElement.css('filter', 'none');
+	        this.blur = !this.blur;
+	    },
+
+	    toggleButtonColor: function(evt) {
+	        var color = evt.type === 'touchstart' ? this.buttonFocusColor : '#ffffff';
+	        $('#menu-button-icon span').css('background', color);
+	    }
+	};
+
+	module.exports = Backbone.View.extend(Menu);
+
+
+/***/ },
+/* 15 */,
+/* 16 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+
+	// load the styles
+	var content = __webpack_require__(17);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(19)(content, {});
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		module.hot.accept("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/menu.css", function() {
+			var newContent = require("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/menu.css");
+			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+			update(newContent);
+		});
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
+	}
+
+/***/ },
+/* 17 */
+/***/ function(module, exports, __webpack_require__) {
+
+	exports = module.exports = __webpack_require__(18)();
+	// imports
+
+
+	// module
+	exports.push([module.id, ".menu-button {\n    position: absolute;\n    top: 4px;\n    left: 3%;\n    z-index: 1000;\n    background-color: transparent;\n    height: 50px;\n    width: 50px;\n}\n\n.side-menu {\n    z-index: 1;\n    position: absolute;\n    height: 100%;\n    width: 83%;\n    background-color: #ffffff;\n    height: 100%;\n    top: 0;\n}\n\n.menu-list-item {\n    height: 60px;\n    padding-top: 16px;\n    padding-bottom: 15px;\n    padding-left: 20px;\n    background-color: #50bbe6;\n    color: #ffffff;\n    border-bottom: 1px solid #ffffff;\n    font-size: 18px;\n}\n\n\n/* add main content (element that will slide to show side menu) class here to configure easing/animation */\n\n.site-wrapper {\n    transition-timing-function: ease-out;\n    transition: 0.35s;\n}\n\n#menu-button-icon {\n    width: 60%;\n    height: 50%;\n    margin-top: 20%;\n    margin-left: 20%;\n    position: relative;\n    -webkit-transform: rotate(0deg);\n    -moz-transform: rotate(0deg);\n    -o-transform: rotate(0deg);\n    transform: rotate(0deg);\n    -webkit-transition: .5s ease-in-out;\n    -moz-transition: .5s ease-in-out;\n    -o-transition: .5s ease-in-out;\n    transition: .5s ease-in-out;\n    cursor: pointer;\n}\n\n#menu-button-icon span {\n    display: block;\n    position: absolute;\n    height: 4px;\n    width: 100%;\n    background: #ffffff;\n    border-radius: 5px;\n    opacity: 1;\n    left: 0;\n    -webkit-transform: rotate(0deg);\n    -moz-transform: rotate(0deg);\n    -o-transform: rotate(0deg);\n    transform: rotate(0deg);\n    -webkit-transition: .25s ease-in-out;\n    -moz-transition: .25s ease-in-out;\n    -o-transition: .25s ease-in-out;\n    transition: .25s ease-in-out;\n}\n\n#menu-button-icon span:nth-child(1) {\n    top: 0px;\n}\n\n#menu-button-icon span:nth-child(2),\n#menu-button-icon span:nth-child(3) {\n    top: 10px;\n}\n\n#menu-button-icon span:nth-child(4) {\n    top: 20px;\n}\n\n#menu-button-icon.open span:nth-child(1) {\n    top: 18px;\n    width: 0%;\n    left: 50%;\n}\n\n#menu-button-icon.open span:nth-child(2) {\n    -webkit-transform: rotate(45deg);\n    -moz-transform: rotate(45deg);\n    -o-transform: rotate(45deg);\n    transform: rotate(45deg);\n}\n\n#menu-button-icon.open span:nth-child(3) {\n    -webkit-transform: rotate(-45deg);\n    -moz-transform: rotate(-45deg);\n    -o-transform: rotate(-45deg);\n    transform: rotate(-45deg);\n}\n\n#menu-button-icon.open span:nth-child(4) {\n    top: 18px;\n    width: 0%;\n    left: 50%;\n}\n", ""]);
+
+	// exports
+
+
+/***/ },
+/* 18 */
+/***/ function(module, exports) {
+
+	/*
+		MIT License http://www.opensource.org/licenses/mit-license.php
+		Author Tobias Koppers @sokra
+	*/
+	// css base code, injected by the css-loader
+	module.exports = function() {
+		var list = [];
+
+		// return the list of modules as css string
+		list.toString = function toString() {
+			var result = [];
+			for(var i = 0; i < this.length; i++) {
+				var item = this[i];
+				if(item[2]) {
+					result.push("@media " + item[2] + "{" + item[1] + "}");
+				} else {
+					result.push(item[1]);
+				}
+			}
+			return result.join("");
+		};
+
+		// import a list of modules into the list
+		list.i = function(modules, mediaQuery) {
+			if(typeof modules === "string")
+				modules = [[null, modules, ""]];
+			var alreadyImportedModules = {};
+			for(var i = 0; i < this.length; i++) {
+				var id = this[i][0];
+				if(typeof id === "number")
+					alreadyImportedModules[id] = true;
+			}
+			for(i = 0; i < modules.length; i++) {
+				var item = modules[i];
+				// skip already imported module
+				// this implementation is not 100% perfect for weird media query combinations
+				//  when a module is imported multiple times with different media queries.
+				//  I hope this will never occur (Hey this way we have smaller bundles)
+				if(typeof item[0] !== "number" || !alreadyImportedModules[item[0]]) {
+					if(mediaQuery && !item[2]) {
+						item[2] = mediaQuery;
+					} else if(mediaQuery) {
+						item[2] = "(" + item[2] + ") and (" + mediaQuery + ")";
+					}
+					list.push(item);
+				}
+			}
+		};
+		return list;
+	};
+
+
+/***/ },
+/* 19 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*
+		MIT License http://www.opensource.org/licenses/mit-license.php
+		Author Tobias Koppers @sokra
+	*/
+	var stylesInDom = {},
+		memoize = function(fn) {
+			var memo;
+			return function () {
+				if (typeof memo === "undefined") memo = fn.apply(this, arguments);
+				return memo;
+			};
+		},
+		isIE9 = memoize(function() {
+			return /msie 9\b/.test(window.navigator.userAgent.toLowerCase());
+		}),
+		getHeadElement = memoize(function () {
+			return document.head || document.getElementsByTagName("head")[0];
+		}),
+		singletonElement = null,
+		singletonCounter = 0;
+
+	module.exports = function(list, options) {
+		if(false) {
+			if(typeof document !== "object") throw new Error("The style-loader cannot be used in a non-browser environment");
+		}
+
+		options = options || {};
+		// Force single-tag solution on IE9, which has a hard limit on the # of <style>
+		// tags it will allow on a page
+		if (typeof options.singleton === "undefined") options.singleton = isIE9();
+
+		var styles = listToStyles(list);
+		addStylesToDom(styles, options);
+
+		return function update(newList) {
+			var mayRemove = [];
+			for(var i = 0; i < styles.length; i++) {
+				var item = styles[i];
+				var domStyle = stylesInDom[item.id];
+				domStyle.refs--;
+				mayRemove.push(domStyle);
+			}
+			if(newList) {
+				var newStyles = listToStyles(newList);
+				addStylesToDom(newStyles, options);
+			}
+			for(var i = 0; i < mayRemove.length; i++) {
+				var domStyle = mayRemove[i];
+				if(domStyle.refs === 0) {
+					for(var j = 0; j < domStyle.parts.length; j++)
+						domStyle.parts[j]();
+					delete stylesInDom[domStyle.id];
+				}
+			}
+		};
+	}
+
+	function addStylesToDom(styles, options) {
+		for(var i = 0; i < styles.length; i++) {
+			var item = styles[i];
+			var domStyle = stylesInDom[item.id];
+			if(domStyle) {
+				domStyle.refs++;
+				for(var j = 0; j < domStyle.parts.length; j++) {
+					domStyle.parts[j](item.parts[j]);
+				}
+				for(; j < item.parts.length; j++) {
+					domStyle.parts.push(addStyle(item.parts[j], options));
+				}
+			} else {
+				var parts = [];
+				for(var j = 0; j < item.parts.length; j++) {
+					parts.push(addStyle(item.parts[j], options));
+				}
+				stylesInDom[item.id] = {id: item.id, refs: 1, parts: parts};
+			}
+		}
+	}
+
+	function listToStyles(list) {
+		var styles = [];
+		var newStyles = {};
+		for(var i = 0; i < list.length; i++) {
+			var item = list[i];
+			var id = item[0];
+			var css = item[1];
+			var media = item[2];
+			var sourceMap = item[3];
+			var part = {css: css, media: media, sourceMap: sourceMap};
+			if(!newStyles[id])
+				styles.push(newStyles[id] = {id: id, parts: [part]});
+			else
+				newStyles[id].parts.push(part);
+		}
+		return styles;
+	}
+
+	function createStyleElement() {
+		var styleElement = document.createElement("style");
+		var head = getHeadElement();
+		styleElement.type = "text/css";
+		head.appendChild(styleElement);
+		return styleElement;
+	}
+
+	function addStyle(obj, options) {
+		var styleElement, update, remove;
+
+		if (options.singleton) {
+			var styleIndex = singletonCounter++;
+			styleElement = singletonElement || (singletonElement = createStyleElement());
+			update = applyToSingletonTag.bind(null, styleElement, styleIndex, false);
+			remove = applyToSingletonTag.bind(null, styleElement, styleIndex, true);
+		} else {
+			styleElement = createStyleElement();
+			update = applyToTag.bind(null, styleElement);
+			remove = function () {
+				styleElement.parentNode.removeChild(styleElement);
+			};
+		}
+
+		update(obj);
+
+		return function updateStyle(newObj) {
+			if(newObj) {
+				if(newObj.css === obj.css && newObj.media === obj.media && newObj.sourceMap === obj.sourceMap)
+					return;
+				update(obj = newObj);
+			} else {
+				remove();
+			}
+		};
+	}
+
+	function replaceText(source, id, replacement) {
+		var boundaries = ["/** >>" + id + " **/", "/** " + id + "<< **/"];
+		var start = source.lastIndexOf(boundaries[0]);
+		var wrappedReplacement = replacement
+			? (boundaries[0] + replacement + boundaries[1])
+			: "";
+		if (source.lastIndexOf(boundaries[0]) >= 0) {
+			var end = source.lastIndexOf(boundaries[1]) + boundaries[1].length;
+			return source.slice(0, start) + wrappedReplacement + source.slice(end);
+		} else {
+			return source + wrappedReplacement;
+		}
+	}
+
+	function applyToSingletonTag(styleElement, index, remove, obj) {
+		var css = remove ? "" : obj.css;
+
+		if(styleElement.styleSheet) {
+			styleElement.styleSheet.cssText = replaceText(styleElement.styleSheet.cssText, index, css);
+		} else {
+			var cssNode = document.createTextNode(css);
+			var childNodes = styleElement.childNodes;
+			if (childNodes[index]) styleElement.removeChild(childNodes[index]);
+			if (childNodes.length) {
+				styleElement.insertBefore(cssNode, childNodes[index]);
+			} else {
+				styleElement.appendChild(cssNode);
+			}
+		}
+	}
+
+	function applyToTag(styleElement, obj) {
+		var css = obj.css;
+		var media = obj.media;
+		var sourceMap = obj.sourceMap;
+
+		if(sourceMap && typeof btoa === "function") {
+			try {
+				css += "\n/*# sourceMappingURL=data:application/json;base64," + btoa(JSON.stringify(sourceMap)) + " */";
+				css = "@import url(\"data:text/css;base64," + btoa(css) + "\")";
+			} catch(e) {}
+		}
+
+		if(media) {
+			styleElement.setAttribute("media", media)
+		}
+
+		if(styleElement.styleSheet) {
+			styleElement.styleSheet.cssText = css;
+		} else {
+			while(styleElement.firstChild) {
+				styleElement.removeChild(styleElement.firstChild);
+			}
+			styleElement.appendChild(document.createTextNode(css));
+		}
+	}
+
+
+/***/ },
+/* 20 */
+/***/ function(module, exports) {
+
+	module.exports = function(obj){
+	var __t,__p='',__j=Array.prototype.join,print=function(){__p+=__j.call(arguments,'');};
+	with(obj||{}){
+	__p+='<div class="side-menu">\n    <div class="menu-list-item">\n    </div>\n    <div class="menu-list-item">\n        Heading\n    </div>\n    <div class="menu-list-item">\n        Rail 1\n    </div>\n    <div class="menu-list-item">\n        Rail 2\n    </div>\n    <div class="menu-list-item">\n        Rail 3\n    </div>\n    <div class="menu-list-item">\n        Rail 4\n    </div>\n    <div class="menu-list-item">\n        Rail 5\n    </div>\n    <div class="menu-list-item">\n        Rail 6\n    </div>\n    <div class="menu-list-item">\n        Rail 7\n    </div>\n</div>\n';
+	}
+	return __p;
+	};
+
+
+/***/ },
+/* 21 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var Backbone = __webpack_require__(1);
+	var _ = __webpack_require__(2);
+	var $ = __webpack_require__(3);
+
+	var styles = __webpack_require__(22);
+	var template = __webpack_require__(24);
+	var _log = __webpack_require__(6)('Login');
+	var util = __webpack_require__(10);
+
+	var Login = {
+
+	    className: 'login-form',
+
+	    events: {
+	        'keyup input': 'check',
+	        'click .register': 'register',
+	        'touchmove': 'ignore',
+	    },
+
+	    ignore: function(e){
+	      e.preventDefault();
+	    },
+
+	    render: function() {
+	      this.$el.html(template());
+
+	      this.$user = this.$el.find('#user');
+	      this.$phone = this.$el.find('#phone');
+	      this.$register = this.$el.find('.register').prop('disabled', true);
+
+	      return this;
+	    },
+
+	    show: function() {
+	      this.trigger('cover:show');
+	      this.$el.addClass('show');
+	    },
+
+	    close: function(){
+	      this.trigger('cover:hide');
+	      this.remove();
+	    },
+
+	    register: function(e){
+	      e.preventDefault();
+	      this.model.saveInLocalStorage();
+	    },
+
+	    check: function() {
+	      this.model.set('user', this.$user.val());
+	      this.model.set('phone', this.$phone.val());
+
+	      if(this.model.isValid())
+	        this.$register.prop('disabled', false);
+	    }
+	};
+
+	module.exports = Backbone.View.extend(Login);
+
+
+/***/ },
+/* 22 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+
+	// load the styles
+	var content = __webpack_require__(23);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(19)(content, {});
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		module.hot.accept("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/form.css", function() {
+			var newContent = require("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/form.css");
+			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+			update(newContent);
+		});
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
+	}
+
+/***/ },
+/* 23 */
+/***/ function(module, exports, __webpack_require__) {
+
+	exports = module.exports = __webpack_require__(18)();
+	// imports
+
+
+	// module
+	exports.push([module.id, "\n\n.login-form {\n  height: 100%;\n  width: 100%;\n  z-index: 4;\n  position: absolute;\n  background: transparent;\n  top: 0px;\n  opacity: 0;\n  -webkit-transition: width, top, opacity 1s;\n}\n\n.form-wrapper {\n  margin-top: 60px;\n}\n\n.form-container {\n  position: relative;\n  width: 360px;\n  margin-right: auto;\n  margin-left: auto;\n  margin-top: 20px;\n}\n\n\n.box-form {\n  width: 86%;\n  margin-top: 10px;\n  margin-right: auto;\n  margin-left: auto;\n}\n\n\n.box-form > input {\n height: 40px;\n background: #495560;\n opacity: 0.8;\n color: white;\n text-transform: uppercase;\n border-style: none;\n}\n\n.box-form > p {\n  color: #333333;\n  font-family: Impact, Charcoal, sans-serif;\n  /*font-family: Impact, Charcoal, sans-serif;\n  font-family: Verdana, Geneva, sans-serif;\n  font-family: ‘Lucida Console’, Monaco, monospace;\n  font-family: ‘Trebuchet MS’, Helvetica, sans-serif; */\n}\n\n.login-form.show {\n  opacity: 1;\n}\n\n.box-form > .title {\n  text-align: center;\n  font-size: 59px;\n  color:white;\n}\n\n.icon-descriptor {\n    width: 87px;\n    position: absolute;\n    height: 70px;\n    float: left;\n    background-color: black;\n    border-radius: 2px;\n    opacity: 0.6;\n    left: 21px;\n}\n", ""]);
+
+	// exports
+
+
+/***/ },
+/* 24 */
+/***/ function(module, exports) {
+
+	module.exports = function(obj){
+	var __t,__p='',__j=Array.prototype.join,print=function(){__p+=__j.call(arguments,'');};
+	with(obj||{}){
+	__p+='<div class="form-container">\n      <div class="box-form">\n        <p class="title">Taxi Demo</p>\n      </div>\n    <div class="form-wrapper">\n        <fieldset>\n\n            <!-- Form Name -->\n            <!-- <legend>Login</legend> -->\n            <!-- Text input-->\n\n            <div class="box-form box-input">\n\n                <input id="user" name="user" placeholder="User" style="" class="form-control input-md" required="" type="text">\n            </div>\n\n\n\n            <div class="box-form box-input">\n                <input id="phone" name="phone" type="tel" placeholder="Password" class="form-control input-md" required="" type="text">\n                <span class="help-block"></span>\n            </div>\n\n\n            <!-- Button -->\n\n            <div class="box-form box-input">\n                <button id="login-btn" name="login-btn" class="btn btn-primary btn-lg dropdown-toggle btn-next register">\n                    Continue\n                  </button>\n            </div>\n\n\n        </fieldset>\n    </div>\n\n\n</div>\n';
+	}
+	return __p;
+	};
+
+
+/***/ },
+/* 25 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var Backbone = __webpack_require__(1);
+	var _ = __webpack_require__(2);
+	var $ = __webpack_require__(3);
+	var styles = __webpack_require__(26);
+
+	var NotifyView = {
+
+	  className: 'notify loading',
+
+	  initialize: function(options){
+	    this.$msg = $('<p>');
+	    this.$el.html(this.$msg);
+	  },
+
+	  update: function(msg){
+	    this.$msg.html(msg);
+	    this.show();
+	  },
+
+	  show:function(){
+	    this.$el.removeClass('hide-notification');
+	  },
+
+	  hide: function(){
+	   this.$el.addClass('hide-notification');
+	  },
+
+	};
+
+	module.exports =  Backbone.View.extend(NotifyView);
+
+
+/***/ },
+/* 26 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+
+	// load the styles
+	var content = __webpack_require__(27);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(19)(content, {});
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		module.hot.accept("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/notify.css", function() {
+			var newContent = require("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/notify.css");
+			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+			update(newContent);
+		});
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
+	}
+
+/***/ },
+/* 27 */
+/***/ function(module, exports, __webpack_require__) {
+
+	exports = module.exports = __webpack_require__(18)();
+	// imports
+
+
+	// module
+	exports.push([module.id, ".notify {\n  top: 0px;\n  position: absolute;\n  background-color: black;\n  width: 100%;\n  opacity: 0.8;\n  transition: opacity .85s ease-in-out;\n  -webkit-transition: opacity .85s ease-in-out;\n}\n\n.loading {\n  background-repeat: no-repeat;\n  background-position-y: -4px;\n  background-position-x: -2px;\n  background-image: url(" + __webpack_require__(28) + ");\n}\n\n.hide-notification {\n  opacity: 0;\n}\n\n.notify > p {\n  color: white;\n  margin: 3px;\n  margin-left: 30px;\n}\n", ""]);
+
+	// exports
+
+
+/***/ },
+/* 28 */
+/***/ function(module, exports) {
+
+	module.exports = "dist/556f422652ccf3606f25070486da408f.svg";
+
+/***/ },
+/* 29 */,
+/* 30 */,
+/* 31 */,
+/* 32 */,
+/* 33 */,
+/* 34 */,
+/* 35 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict'
+
+	var _ = __webpack_require__(2);
+	var factory = __webpack_require__(8);
+	var util = __webpack_require__(10);
+	var _log = __webpack_require__(6)('location');
+
+	var DEBUG = true;
+
+	var Location = function() {
+	    var self = this;
+
+	    var lastKnowPosition = {};
+
+	    function rndi(min,max)
+	    {
+	      return (Math.random() * (max - min) + min).toFixed(5)
+	    }
+
+	    this.getLocationAPI = function() {
+
+	        if ("geolocation" in navigator) {
+	            this.geo = navigator.geolocation;
+	            return this;
+	        }
+
+	        alert('Can\'t access the GPS in the device.');
+	        return this;
+	    };
+
+	    this.getLocation = function() {
+	        _log('requesting location');
+
+	        self.trigger('geolocation:working');
+
+	        navigator.geolocation.getCurrentPosition(function(position) {
+	          var pos = {};
+	          if(DEBUG){
+	            pos = {
+	                lat: position.coords.latitude  + parseFloat(rndi(0,0.04)),
+	                lng: position.coords.longitude + parseFloat(rndi(0,0.06))
+	            };
+	          }else{
+	            pos = {
+	               lat: position.coords.latitude,
+	               lng: position.coords.longitude
+	           };
+	          }
+
+	            lastKnowPosition.latitude = position.coords.latitude;
+	            lastKnowPosition.longitude = position.coords.latitude;
+
+	            _log('location found: ' + JSON.stringify(pos));
+	            self.trigger('geolocation:position', pos);
+	        });
+	    };
+
+	    this.track = function(){
+	      self.trackTimer =  setInterval(this.getLocation, 15000);
+	    };
+
+	    this.stopTracking = function(){
+	      clearInterval(self.trackTime);
+	    };
+
+	    this.getLastKnowPosition = function() {
+	        return lastKnowPosition;
+	    };
+	};
+
+	util.extendWithBackboneEvents(Location);
+
+	module.exports = new Location();
+
+
+/***/ },
+/* 36 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	'use strict';
+
+	var Backbone = __webpack_require__(1);
+	var _ = __webpack_require__(2);
+	var $ = __webpack_require__(3);
+
+	var _log = __webpack_require__(6)('Modal');
+	var styles = __webpack_require__(37);
+
+	var BLUR_STYLE = 'blur-background';
+	var OPEN_STYLE = "open";
+
+	var Cover = {
+	    className: 'modal-demo',
+
+	    events: {
+	      'ontouchmove': 'ignore',
+	    },
+
+	    ignore: function(e) {
+	      e.preventDefault();
+	    },
+
+	    initialize: function(opts) {
+	      this.$layer = opts.layer;
+	    },
+
+	    hide:function() {
+	      this.$layer.removeClass(BLUR_STYLE)
+	    },
+
+	    show: function() {
+	      this.$layer.addClass(BLUR_STYLE)
+	      return this;
+	    },
+
+	    bindTo: function(view){
+	      this.listenTo(view, 'cover:show', this.show);
+	      this.listenTo(view, 'cover:hide', this.hide);
+	    },
+	};
+
+	var View = Backbone.View.extend(Cover);
+
+	module.exports = function($element){
+	  var Cover = new View({layer: $element});
+	  $element.append(Cover.el);
+
+	  return function(view) {
+	    Cover.bindTo(view);
+	  }
+	};
+
+
+/***/ },
+/* 37 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+
+	// load the styles
+	var content = __webpack_require__(38);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(19)(content, {});
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		module.hot.accept("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/modal.css", function() {
+			var newContent = require("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/modal.css");
+			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+			update(newContent);
+		});
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
+	}
+
+/***/ },
+/* 38 */
+/***/ function(module, exports, __webpack_require__) {
+
+	exports = module.exports = __webpack_require__(18)();
+	// imports
+
+
+	// module
+	exports.push([module.id, ".modal-demo.open {\n  height: 100%;\n  width: 100%;\n  z-index: 4;\n  background: black;\n  opacity: 0.5 !important;\n  border-radius: 0px !important;\n}\n\n.modal-demo {\n  border-radius: 100px;\n  opacity: 0;\n  top: 0px;\n  left: 0px;\n  position: absolute;\n -webkit-transition: width, top, border-radius, opacity 0.4s;\n}\n\n.blur-background {\n  filter: blur(3px);\n  -webkit-filter: blur(2px);\n  -moz-filter: blur(2px);\n  -o-filter: blur(2px);\n  -ms-filter: blur(2px);\n  opacity: 0.8;\n}\n", ""]);
+
+	// exports
+
+
+/***/ },
+/* 39 */,
+/* 40 */,
+/* 41 */,
+/* 42 */,
+/* 43 */,
+/* 44 */
+/***/ function(module, exports) {
+
+	module.exports = function(obj){
+	var __t,__p='',__j=Array.prototype.join,print=function(){__p+=__j.call(arguments,'');};
+	with(obj||{}){
+	__p+='<!-- this is our animatable button -->\n<div id="menu-button-icon">\n  <span></span>\n  <span></span>\n  <span></span>\n  <span></span>\n</div>';
+	}
+	return __p;
+	};
+
+
+/***/ },
+/* 45 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;;(function () {
+		'use strict';
+
+		/**
+		 * @preserve FastClick: polyfill to remove click delays on browsers with touch UIs.
+		 *
+		 * @codingstandard ftlabs-jsv2
+		 * @copyright The Financial Times Limited [All Rights Reserved]
+		 * @license MIT License (see LICENSE.txt)
+		 */
+
+		/*jslint browser:true, node:true*/
+		/*global define, Event, Node*/
+
+
+		/**
+		 * Instantiate fast-clicking listeners on the specified layer.
+		 *
+		 * @constructor
+		 * @param {Element} layer The layer to listen on
+		 * @param {Object} [options={}] The options to override the defaults
+		 */
+		function FastClick(layer, options) {
+			var oldOnClick;
+
+			options = options || {};
+
+			/**
+			 * Whether a click is currently being tracked.
+			 *
+			 * @type boolean
+			 */
+			this.trackingClick = false;
+
+
+			/**
+			 * Timestamp for when click tracking started.
+			 *
+			 * @type number
+			 */
+			this.trackingClickStart = 0;
+
+
+			/**
+			 * The element being tracked for a click.
+			 *
+			 * @type EventTarget
+			 */
+			this.targetElement = null;
+
+
+			/**
+			 * X-coordinate of touch start event.
+			 *
+			 * @type number
+			 */
+			this.touchStartX = 0;
+
+
+			/**
+			 * Y-coordinate of touch start event.
+			 *
+			 * @type number
+			 */
+			this.touchStartY = 0;
+
+
+			/**
+			 * ID of the last touch, retrieved from Touch.identifier.
+			 *
+			 * @type number
+			 */
+			this.lastTouchIdentifier = 0;
+
+
+			/**
+			 * Touchmove boundary, beyond which a click will be cancelled.
+			 *
+			 * @type number
+			 */
+			this.touchBoundary = options.touchBoundary || 10;
+
+
+			/**
+			 * The FastClick layer.
+			 *
+			 * @type Element
+			 */
+			this.layer = layer;
+
+			/**
+			 * The minimum time between tap(touchstart and touchend) events
+			 *
+			 * @type number
+			 */
+			this.tapDelay = options.tapDelay || 200;
+
+			/**
+			 * The maximum time for a tap
+			 *
+			 * @type number
+			 */
+			this.tapTimeout = options.tapTimeout || 700;
+
+			if (FastClick.notNeeded(layer)) {
+				return;
+			}
+
+			// Some old versions of Android don't have Function.prototype.bind
+			function bind(method, context) {
+				return function() { return method.apply(context, arguments); };
+			}
+
+
+			var methods = ['onMouse', 'onClick', 'onTouchStart', 'onTouchMove', 'onTouchEnd', 'onTouchCancel'];
+			var context = this;
+			for (var i = 0, l = methods.length; i < l; i++) {
+				context[methods[i]] = bind(context[methods[i]], context);
+			}
+
+			// Set up event handlers as required
+			if (deviceIsAndroid) {
+				layer.addEventListener('mouseover', this.onMouse, true);
+				layer.addEventListener('mousedown', this.onMouse, true);
+				layer.addEventListener('mouseup', this.onMouse, true);
+			}
+
+			layer.addEventListener('click', this.onClick, true);
+			layer.addEventListener('touchstart', this.onTouchStart, false);
+			layer.addEventListener('touchmove', this.onTouchMove, false);
+			layer.addEventListener('touchend', this.onTouchEnd, false);
+			layer.addEventListener('touchcancel', this.onTouchCancel, false);
+
+			// Hack is required for browsers that don't support Event#stopImmediatePropagation (e.g. Android 2)
+			// which is how FastClick normally stops click events bubbling to callbacks registered on the FastClick
+			// layer when they are cancelled.
+			if (!Event.prototype.stopImmediatePropagation) {
+				layer.removeEventListener = function(type, callback, capture) {
+					var rmv = Node.prototype.removeEventListener;
+					if (type === 'click') {
+						rmv.call(layer, type, callback.hijacked || callback, capture);
+					} else {
+						rmv.call(layer, type, callback, capture);
+					}
+				};
+
+				layer.addEventListener = function(type, callback, capture) {
+					var adv = Node.prototype.addEventListener;
+					if (type === 'click') {
+						adv.call(layer, type, callback.hijacked || (callback.hijacked = function(event) {
+							if (!event.propagationStopped) {
+								callback(event);
+							}
+						}), capture);
+					} else {
+						adv.call(layer, type, callback, capture);
+					}
+				};
+			}
+
+			// If a handler is already declared in the element's onclick attribute, it will be fired before
+			// FastClick's onClick handler. Fix this by pulling out the user-defined handler function and
+			// adding it as listener.
+			if (typeof layer.onclick === 'function') {
+
+				// Android browser on at least 3.2 requires a new reference to the function in layer.onclick
+				// - the old one won't work if passed to addEventListener directly.
+				oldOnClick = layer.onclick;
+				layer.addEventListener('click', function(event) {
+					oldOnClick(event);
+				}, false);
+				layer.onclick = null;
+			}
+		}
+
+		/**
+		* Windows Phone 8.1 fakes user agent string to look like Android and iPhone.
+		*
+		* @type boolean
+		*/
+		var deviceIsWindowsPhone = navigator.userAgent.indexOf("Windows Phone") >= 0;
+
+		/**
+		 * Android requires exceptions.
+		 *
+		 * @type boolean
+		 */
+		var deviceIsAndroid = navigator.userAgent.indexOf('Android') > 0 && !deviceIsWindowsPhone;
+
+
+		/**
+		 * iOS requires exceptions.
+		 *
+		 * @type boolean
+		 */
+		var deviceIsIOS = /iP(ad|hone|od)/.test(navigator.userAgent) && !deviceIsWindowsPhone;
+
+
+		/**
+		 * iOS 4 requires an exception for select elements.
+		 *
+		 * @type boolean
+		 */
+		var deviceIsIOS4 = deviceIsIOS && (/OS 4_\d(_\d)?/).test(navigator.userAgent);
+
+
+		/**
+		 * iOS 6.0-7.* requires the target element to be manually derived
+		 *
+		 * @type boolean
+		 */
+		var deviceIsIOSWithBadTarget = deviceIsIOS && (/OS [6-7]_\d/).test(navigator.userAgent);
+
+		/**
+		 * BlackBerry requires exceptions.
+		 *
+		 * @type boolean
+		 */
+		var deviceIsBlackBerry10 = navigator.userAgent.indexOf('BB10') > 0;
+
+		/**
+		 * Determine whether a given element requires a native click.
+		 *
+		 * @param {EventTarget|Element} target Target DOM element
+		 * @returns {boolean} Returns true if the element needs a native click
+		 */
+		FastClick.prototype.needsClick = function(target) {
+			switch (target.nodeName.toLowerCase()) {
+
+			// Don't send a synthetic click to disabled inputs (issue #62)
+			case 'button':
+			case 'select':
+			case 'textarea':
+				if (target.disabled) {
+					return true;
+				}
+
+				break;
+			case 'input':
+
+				// File inputs need real clicks on iOS 6 due to a browser bug (issue #68)
+				if ((deviceIsIOS && target.type === 'file') || target.disabled) {
+					return true;
+				}
+
+				break;
+			case 'label':
+			case 'iframe': // iOS8 homescreen apps can prevent events bubbling into frames
+			case 'video':
+				return true;
+			}
+
+			return (/\bneedsclick\b/).test(target.className);
+		};
+
+
+		/**
+		 * Determine whether a given element requires a call to focus to simulate click into element.
+		 *
+		 * @param {EventTarget|Element} target Target DOM element
+		 * @returns {boolean} Returns true if the element requires a call to focus to simulate native click.
+		 */
+		FastClick.prototype.needsFocus = function(target) {
+			switch (target.nodeName.toLowerCase()) {
+			case 'textarea':
+				return true;
+			case 'select':
+				return !deviceIsAndroid;
+			case 'input':
+				switch (target.type) {
+				case 'button':
+				case 'checkbox':
+				case 'file':
+				case 'image':
+				case 'radio':
+				case 'submit':
+					return false;
+				}
+
+				// No point in attempting to focus disabled inputs
+				return !target.disabled && !target.readOnly;
+			default:
+				return (/\bneedsfocus\b/).test(target.className);
+			}
+		};
+
+
+		/**
+		 * Send a click event to the specified element.
+		 *
+		 * @param {EventTarget|Element} targetElement
+		 * @param {Event} event
+		 */
+		FastClick.prototype.sendClick = function(targetElement, event) {
+			var clickEvent, touch;
+
+			// On some Android devices activeElement needs to be blurred otherwise the synthetic click will have no effect (#24)
+			if (document.activeElement && document.activeElement !== targetElement) {
+				document.activeElement.blur();
+			}
+
+			touch = event.changedTouches[0];
+
+			// Synthesise a click event, with an extra attribute so it can be tracked
+			clickEvent = document.createEvent('MouseEvents');
+			clickEvent.initMouseEvent(this.determineEventType(targetElement), true, true, window, 1, touch.screenX, touch.screenY, touch.clientX, touch.clientY, false, false, false, false, 0, null);
+			clickEvent.forwardedTouchEvent = true;
+			targetElement.dispatchEvent(clickEvent);
+		};
+
+		FastClick.prototype.determineEventType = function(targetElement) {
+
+			//Issue #159: Android Chrome Select Box does not open with a synthetic click event
+			if (deviceIsAndroid && targetElement.tagName.toLowerCase() === 'select') {
+				return 'mousedown';
+			}
+
+			return 'click';
+		};
+
+
+		/**
+		 * @param {EventTarget|Element} targetElement
+		 */
+		FastClick.prototype.focus = function(targetElement) {
+			var length;
+
+			// Issue #160: on iOS 7, some input elements (e.g. date datetime month) throw a vague TypeError on setSelectionRange. These elements don't have an integer value for the selectionStart and selectionEnd properties, but unfortunately that can't be used for detection because accessing the properties also throws a TypeError. Just check the type instead. Filed as Apple bug #15122724.
+			if (deviceIsIOS && targetElement.setSelectionRange && targetElement.type.indexOf('date') !== 0 && targetElement.type !== 'time' && targetElement.type !== 'month') {
+				length = targetElement.value.length;
+				targetElement.setSelectionRange(length, length);
+			} else {
+				targetElement.focus();
+			}
+		};
+
+
+		/**
+		 * Check whether the given target element is a child of a scrollable layer and if so, set a flag on it.
+		 *
+		 * @param {EventTarget|Element} targetElement
+		 */
+		FastClick.prototype.updateScrollParent = function(targetElement) {
+			var scrollParent, parentElement;
+
+			scrollParent = targetElement.fastClickScrollParent;
+
+			// Attempt to discover whether the target element is contained within a scrollable layer. Re-check if the
+			// target element was moved to another parent.
+			if (!scrollParent || !scrollParent.contains(targetElement)) {
+				parentElement = targetElement;
+				do {
+					if (parentElement.scrollHeight > parentElement.offsetHeight) {
+						scrollParent = parentElement;
+						targetElement.fastClickScrollParent = parentElement;
+						break;
+					}
+
+					parentElement = parentElement.parentElement;
+				} while (parentElement);
+			}
+
+			// Always update the scroll top tracker if possible.
+			if (scrollParent) {
+				scrollParent.fastClickLastScrollTop = scrollParent.scrollTop;
+			}
+		};
+
+
+		/**
+		 * @param {EventTarget} targetElement
+		 * @returns {Element|EventTarget}
+		 */
+		FastClick.prototype.getTargetElementFromEventTarget = function(eventTarget) {
+
+			// On some older browsers (notably Safari on iOS 4.1 - see issue #56) the event target may be a text node.
+			if (eventTarget.nodeType === Node.TEXT_NODE) {
+				return eventTarget.parentNode;
+			}
+
+			return eventTarget;
+		};
+
+
+		/**
+		 * On touch start, record the position and scroll offset.
+		 *
+		 * @param {Event} event
+		 * @returns {boolean}
+		 */
+		FastClick.prototype.onTouchStart = function(event) {
+			var targetElement, touch, selection;
+
+			// Ignore multiple touches, otherwise pinch-to-zoom is prevented if both fingers are on the FastClick element (issue #111).
+			if (event.targetTouches.length > 1) {
+				return true;
+			}
+
+			targetElement = this.getTargetElementFromEventTarget(event.target);
+			touch = event.targetTouches[0];
+
+			if (deviceIsIOS) {
+
+				// Only trusted events will deselect text on iOS (issue #49)
+				selection = window.getSelection();
+				if (selection.rangeCount && !selection.isCollapsed) {
+					return true;
+				}
+
+				if (!deviceIsIOS4) {
+
+					// Weird things happen on iOS when an alert or confirm dialog is opened from a click event callback (issue #23):
+					// when the user next taps anywhere else on the page, new touchstart and touchend events are dispatched
+					// with the same identifier as the touch event that previously triggered the click that triggered the alert.
+					// Sadly, there is an issue on iOS 4 that causes some normal touch events to have the same identifier as an
+					// immediately preceeding touch event (issue #52), so this fix is unavailable on that platform.
+					// Issue 120: touch.identifier is 0 when Chrome dev tools 'Emulate touch events' is set with an iOS device UA string,
+					// which causes all touch events to be ignored. As this block only applies to iOS, and iOS identifiers are always long,
+					// random integers, it's safe to to continue if the identifier is 0 here.
+					if (touch.identifier && touch.identifier === this.lastTouchIdentifier) {
+						event.preventDefault();
+						return false;
+					}
+
+					this.lastTouchIdentifier = touch.identifier;
+
+					// If the target element is a child of a scrollable layer (using -webkit-overflow-scrolling: touch) and:
+					// 1) the user does a fling scroll on the scrollable layer
+					// 2) the user stops the fling scroll with another tap
+					// then the event.target of the last 'touchend' event will be the element that was under the user's finger
+					// when the fling scroll was started, causing FastClick to send a click event to that layer - unless a check
+					// is made to ensure that a parent layer was not scrolled before sending a synthetic click (issue #42).
+					this.updateScrollParent(targetElement);
+				}
+			}
+
+			this.trackingClick = true;
+			this.trackingClickStart = event.timeStamp;
+			this.targetElement = targetElement;
+
+			this.touchStartX = touch.pageX;
+			this.touchStartY = touch.pageY;
+
+			// Prevent phantom clicks on fast double-tap (issue #36)
+			if ((event.timeStamp - this.lastClickTime) < this.tapDelay) {
+				event.preventDefault();
+			}
+
+			return true;
+		};
+
+
+		/**
+		 * Based on a touchmove event object, check whether the touch has moved past a boundary since it started.
+		 *
+		 * @param {Event} event
+		 * @returns {boolean}
+		 */
+		FastClick.prototype.touchHasMoved = function(event) {
+			var touch = event.changedTouches[0], boundary = this.touchBoundary;
+
+			if (Math.abs(touch.pageX - this.touchStartX) > boundary || Math.abs(touch.pageY - this.touchStartY) > boundary) {
+				return true;
+			}
+
+			return false;
+		};
+
+
+		/**
+		 * Update the last position.
+		 *
+		 * @param {Event} event
+		 * @returns {boolean}
+		 */
+		FastClick.prototype.onTouchMove = function(event) {
+			if (!this.trackingClick) {
+				return true;
+			}
+
+			// If the touch has moved, cancel the click tracking
+			if (this.targetElement !== this.getTargetElementFromEventTarget(event.target) || this.touchHasMoved(event)) {
+				this.trackingClick = false;
+				this.targetElement = null;
+			}
+
+			return true;
+		};
+
+
+		/**
+		 * Attempt to find the labelled control for the given label element.
+		 *
+		 * @param {EventTarget|HTMLLabelElement} labelElement
+		 * @returns {Element|null}
+		 */
+		FastClick.prototype.findControl = function(labelElement) {
+
+			// Fast path for newer browsers supporting the HTML5 control attribute
+			if (labelElement.control !== undefined) {
+				return labelElement.control;
+			}
+
+			// All browsers under test that support touch events also support the HTML5 htmlFor attribute
+			if (labelElement.htmlFor) {
+				return document.getElementById(labelElement.htmlFor);
+			}
+
+			// If no for attribute exists, attempt to retrieve the first labellable descendant element
+			// the list of which is defined here: http://www.w3.org/TR/html5/forms.html#category-label
+			return labelElement.querySelector('button, input:not([type=hidden]), keygen, meter, output, progress, select, textarea');
+		};
+
+
+		/**
+		 * On touch end, determine whether to send a click event at once.
+		 *
+		 * @param {Event} event
+		 * @returns {boolean}
+		 */
+		FastClick.prototype.onTouchEnd = function(event) {
+			var forElement, trackingClickStart, targetTagName, scrollParent, touch, targetElement = this.targetElement;
+
+			if (!this.trackingClick) {
+				return true;
+			}
+
+			// Prevent phantom clicks on fast double-tap (issue #36)
+			if ((event.timeStamp - this.lastClickTime) < this.tapDelay) {
+				this.cancelNextClick = true;
+				return true;
+			}
+
+			if ((event.timeStamp - this.trackingClickStart) > this.tapTimeout) {
+				return true;
+			}
+
+			// Reset to prevent wrong click cancel on input (issue #156).
+			this.cancelNextClick = false;
+
+			this.lastClickTime = event.timeStamp;
+
+			trackingClickStart = this.trackingClickStart;
+			this.trackingClick = false;
+			this.trackingClickStart = 0;
+
+			// On some iOS devices, the targetElement supplied with the event is invalid if the layer
+			// is performing a transition or scroll, and has to be re-detected manually. Note that
+			// for this to function correctly, it must be called *after* the event target is checked!
+			// See issue #57; also filed as rdar://13048589 .
+			if (deviceIsIOSWithBadTarget) {
+				touch = event.changedTouches[0];
+
+				// In certain cases arguments of elementFromPoint can be negative, so prevent setting targetElement to null
+				targetElement = document.elementFromPoint(touch.pageX - window.pageXOffset, touch.pageY - window.pageYOffset) || targetElement;
+				targetElement.fastClickScrollParent = this.targetElement.fastClickScrollParent;
+			}
+
+			targetTagName = targetElement.tagName.toLowerCase();
+			if (targetTagName === 'label') {
+				forElement = this.findControl(targetElement);
+				if (forElement) {
+					this.focus(targetElement);
+					if (deviceIsAndroid) {
+						return false;
+					}
+
+					targetElement = forElement;
+				}
+			} else if (this.needsFocus(targetElement)) {
+
+				// Case 1: If the touch started a while ago (best guess is 100ms based on tests for issue #36) then focus will be triggered anyway. Return early and unset the target element reference so that the subsequent click will be allowed through.
+				// Case 2: Without this exception for input elements tapped when the document is contained in an iframe, then any inputted text won't be visible even though the value attribute is updated as the user types (issue #37).
+				if ((event.timeStamp - trackingClickStart) > 100 || (deviceIsIOS && window.top !== window && targetTagName === 'input')) {
+					this.targetElement = null;
+					return false;
+				}
+
+				this.focus(targetElement);
+				this.sendClick(targetElement, event);
+
+				// Select elements need the event to go through on iOS 4, otherwise the selector menu won't open.
+				// Also this breaks opening selects when VoiceOver is active on iOS6, iOS7 (and possibly others)
+				if (!deviceIsIOS || targetTagName !== 'select') {
+					this.targetElement = null;
+					event.preventDefault();
+				}
+
+				return false;
+			}
+
+			if (deviceIsIOS && !deviceIsIOS4) {
+
+				// Don't send a synthetic click event if the target element is contained within a parent layer that was scrolled
+				// and this tap is being used to stop the scrolling (usually initiated by a fling - issue #42).
+				scrollParent = targetElement.fastClickScrollParent;
+				if (scrollParent && scrollParent.fastClickLastScrollTop !== scrollParent.scrollTop) {
+					return true;
+				}
+			}
+
+			// Prevent the actual click from going though - unless the target node is marked as requiring
+			// real clicks or if it is in the whitelist in which case only non-programmatic clicks are permitted.
+			if (!this.needsClick(targetElement)) {
+				event.preventDefault();
+				this.sendClick(targetElement, event);
+			}
+
+			return false;
+		};
+
+
+		/**
+		 * On touch cancel, stop tracking the click.
+		 *
+		 * @returns {void}
+		 */
+		FastClick.prototype.onTouchCancel = function() {
+			this.trackingClick = false;
+			this.targetElement = null;
+		};
+
+
+		/**
+		 * Determine mouse events which should be permitted.
+		 *
+		 * @param {Event} event
+		 * @returns {boolean}
+		 */
+		FastClick.prototype.onMouse = function(event) {
+
+			// If a target element was never set (because a touch event was never fired) allow the event
+			if (!this.targetElement) {
+				return true;
+			}
+
+			if (event.forwardedTouchEvent) {
+				return true;
+			}
+
+			// Programmatically generated events targeting a specific element should be permitted
+			if (!event.cancelable) {
+				return true;
+			}
+
+			// Derive and check the target element to see whether the mouse event needs to be permitted;
+			// unless explicitly enabled, prevent non-touch click events from triggering actions,
+			// to prevent ghost/doubleclicks.
+			if (!this.needsClick(this.targetElement) || this.cancelNextClick) {
+
+				// Prevent any user-added listeners declared on FastClick element from being fired.
+				if (event.stopImmediatePropagation) {
+					event.stopImmediatePropagation();
+				} else {
+
+					// Part of the hack for browsers that don't support Event#stopImmediatePropagation (e.g. Android 2)
+					event.propagationStopped = true;
+				}
+
+				// Cancel the event
+				event.stopPropagation();
+				event.preventDefault();
+
+				return false;
+			}
+
+			// If the mouse event is permitted, return true for the action to go through.
+			return true;
+		};
+
+
+		/**
+		 * On actual clicks, determine whether this is a touch-generated click, a click action occurring
+		 * naturally after a delay after a touch (which needs to be cancelled to avoid duplication), or
+		 * an actual click which should be permitted.
+		 *
+		 * @param {Event} event
+		 * @returns {boolean}
+		 */
+		FastClick.prototype.onClick = function(event) {
+			var permitted;
+
+			// It's possible for another FastClick-like library delivered with third-party code to fire a click event before FastClick does (issue #44). In that case, set the click-tracking flag back to false and return early. This will cause onTouchEnd to return early.
+			if (this.trackingClick) {
+				this.targetElement = null;
+				this.trackingClick = false;
+				return true;
+			}
+
+			// Very odd behaviour on iOS (issue #18): if a submit element is present inside a form and the user hits enter in the iOS simulator or clicks the Go button on the pop-up OS keyboard the a kind of 'fake' click event will be triggered with the submit-type input element as the target.
+			if (event.target.type === 'submit' && event.detail === 0) {
+				return true;
+			}
+
+			permitted = this.onMouse(event);
+
+			// Only unset targetElement if the click is not permitted. This will ensure that the check for !targetElement in onMouse fails and the browser's click doesn't go through.
+			if (!permitted) {
+				this.targetElement = null;
+			}
+
+			// If clicks are permitted, return true for the action to go through.
+			return permitted;
+		};
+
+
+		/**
+		 * Remove all FastClick's event listeners.
+		 *
+		 * @returns {void}
+		 */
+		FastClick.prototype.destroy = function() {
+			var layer = this.layer;
+
+			if (deviceIsAndroid) {
+				layer.removeEventListener('mouseover', this.onMouse, true);
+				layer.removeEventListener('mousedown', this.onMouse, true);
+				layer.removeEventListener('mouseup', this.onMouse, true);
+			}
+
+			layer.removeEventListener('click', this.onClick, true);
+			layer.removeEventListener('touchstart', this.onTouchStart, false);
+			layer.removeEventListener('touchmove', this.onTouchMove, false);
+			layer.removeEventListener('touchend', this.onTouchEnd, false);
+			layer.removeEventListener('touchcancel', this.onTouchCancel, false);
+		};
+
+
+		/**
+		 * Check whether FastClick is needed.
+		 *
+		 * @param {Element} layer The layer to listen on
+		 */
+		FastClick.notNeeded = function(layer) {
+			var metaViewport;
+			var chromeVersion;
+			var blackberryVersion;
+			var firefoxVersion;
+
+			// Devices that don't support touch don't need FastClick
+			if (typeof window.ontouchstart === 'undefined') {
+				return true;
+			}
+
+			// Chrome version - zero for other browsers
+			chromeVersion = +(/Chrome\/([0-9]+)/.exec(navigator.userAgent) || [,0])[1];
+
+			if (chromeVersion) {
+
+				if (deviceIsAndroid) {
+					metaViewport = document.querySelector('meta[name=viewport]');
+
+					if (metaViewport) {
+						// Chrome on Android with user-scalable="no" doesn't need FastClick (issue #89)
+						if (metaViewport.content.indexOf('user-scalable=no') !== -1) {
+							return true;
+						}
+						// Chrome 32 and above with width=device-width or less don't need FastClick
+						if (chromeVersion > 31 && document.documentElement.scrollWidth <= window.outerWidth) {
+							return true;
+						}
+					}
+
+				// Chrome desktop doesn't need FastClick (issue #15)
+				} else {
+					return true;
+				}
+			}
+
+			if (deviceIsBlackBerry10) {
+				blackberryVersion = navigator.userAgent.match(/Version\/([0-9]*)\.([0-9]*)/);
+
+				// BlackBerry 10.3+ does not require Fastclick library.
+				// https://github.com/ftlabs/fastclick/issues/251
+				if (blackberryVersion[1] >= 10 && blackberryVersion[2] >= 3) {
+					metaViewport = document.querySelector('meta[name=viewport]');
+
+					if (metaViewport) {
+						// user-scalable=no eliminates click delay.
+						if (metaViewport.content.indexOf('user-scalable=no') !== -1) {
+							return true;
+						}
+						// width=device-width (or less than device-width) eliminates click delay.
+						if (document.documentElement.scrollWidth <= window.outerWidth) {
+							return true;
+						}
+					}
+				}
+			}
+
+			// IE10 with -ms-touch-action: none or manipulation, which disables double-tap-to-zoom (issue #97)
+			if (layer.style.msTouchAction === 'none' || layer.style.touchAction === 'manipulation') {
+				return true;
+			}
+
+			// Firefox version - zero for other browsers
+			firefoxVersion = +(/Firefox\/([0-9]+)/.exec(navigator.userAgent) || [,0])[1];
+
+			if (firefoxVersion >= 27) {
+				// Firefox 27+ does not have tap delay if the content is not zoomable - https://bugzilla.mozilla.org/show_bug.cgi?id=922896
+
+				metaViewport = document.querySelector('meta[name=viewport]');
+				if (metaViewport && (metaViewport.content.indexOf('user-scalable=no') !== -1 || document.documentElement.scrollWidth <= window.outerWidth)) {
+					return true;
+				}
+			}
+
+			// IE11: prefixed -ms-touch-action is no longer supported and it's recomended to use non-prefixed version
+			// http://msdn.microsoft.com/en-us/library/windows/apps/Hh767313.aspx
+			if (layer.style.touchAction === 'none' || layer.style.touchAction === 'manipulation') {
+				return true;
+			}
+
+			return false;
+		};
+
+
+		/**
+		 * Factory method for creating a FastClick object
+		 *
+		 * @param {Element} layer The layer to listen on
+		 * @param {Object} [options={}] The options to override the defaults
+		 */
+		FastClick.attach = function(layer, options) {
+			return new FastClick(layer, options);
+		};
+
+
+		if (true) {
+
+			// AMD. Register as an anonymous module.
+			!(__WEBPACK_AMD_DEFINE_RESULT__ = function() {
+				return FastClick;
+			}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+		} else if (typeof module !== 'undefined' && module.exports) {
+			module.exports = FastClick.attach;
+			module.exports.FastClick = FastClick;
+		} else {
+			window.FastClick = FastClick;
+		}
+	}());
+
+
+/***/ },
+/* 46 */,
+/* 47 */,
+/* 48 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	var socketIO = __webpack_require__(51);
+	var _ = __webpack_require__(2);
+	var appendEvents = __webpack_require__(8);
+	var _log = __webpack_require__(6)('DriversSocket');
 
 	var WEBSOCKET_URL = 'http://localhost:8001'
 
@@ -27664,7 +29694,107 @@
 
 
 /***/ },
-/* 10 */
+/* 49 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _ = __webpack_require__(2);
+	var $ = __webpack_require__(3);
+	var appendEvents = __webpack_require__(8);
+	var _log = __webpack_require__(6)('Marker');
+
+	var cache = {};
+	var userMark = {};
+	var InfoView = null;
+
+	var MapMarkers = function(Map, _InfoView) {
+
+	    InfoView = _InfoView || _.identity;
+
+	    //Remove the user from this device from the tracking list.
+	    function removeUser(User, data) {
+	        var userName = User.get('user');
+
+	        if (!_.isUndefined(data[userName])) {
+	            delete data[userName];
+	        }
+
+	        return data;
+	    };
+
+	    function createDriversMarker(memo, data, driverName) {
+	        console.log('data->', data);
+
+	        memo[driverName] = {
+	            data: {
+	                position: data,
+	                marker: createMark(data.position)
+	            }
+	        };
+
+	        return memo;
+	    };
+
+	    function createMark(position) {
+	        var marker = new google.maps.Marker();
+
+	        marker.setAnimation(google.maps.Animation.DROP);
+	        marker.setPosition(position);
+	        marker.setMap(Map);
+
+	        return marker;
+	    };
+
+	    this.setOrigin = function(driverName) {
+	        _log('setting:origin -> ' + driverName);
+	        var driver = cache[driverName];
+	    };
+
+	    this.markDriversInMap = function(user, drivers) {
+	        var _drivers = removeUser(user, drivers);
+	        cache = _.reduce(_drivers, createDriversMarker, {});
+	    };
+
+	    this.markUserInMap = function(user, position) {
+
+	        userMark.marker = createMark(position);
+	        userMark.userInfo = user;
+
+	        Map.setCenter(position);
+
+	        userMark
+	            .marker
+	            .setIcon(__webpack_require__(50));
+
+	        userMark.infoWindow =  new InfoView({
+	          user: user, 
+	          marker: userMark.marker
+	        })
+
+	        userMark.infoWindow.updateAddress();
+	    };
+
+	    this.getMap = function() {
+	        return Map;
+	    };
+
+	    this.update = function(drivers) {
+	        _log('cloud update [drivers] ->' + JSON.stringify(drivers));
+	    };
+	};
+
+	module.exports = appendEvents(MapMarkers);
+
+
+/***/ },
+/* 50 */
+/***/ function(module, exports) {
+
+	module.exports = "dist/1ac1109ad174b034482342f00a8e7746.svg";
+
+/***/ },
+/* 51 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -27672,10 +29802,10 @@
 	 * Module dependencies.
 	 */
 
-	var url = __webpack_require__(11);
-	var parser = __webpack_require__(17);
-	var Manager = __webpack_require__(28);
-	var debug = __webpack_require__(13)('socket.io-client');
+	var url = __webpack_require__(52);
+	var parser = __webpack_require__(58);
+	var Manager = __webpack_require__(69);
+	var debug = __webpack_require__(54)('socket.io-client');
 
 	/**
 	 * Module exports.
@@ -27774,12 +29904,12 @@
 	 * @api public
 	 */
 
-	exports.Manager = __webpack_require__(28);
-	exports.Socket = __webpack_require__(59);
+	exports.Manager = __webpack_require__(69);
+	exports.Socket = __webpack_require__(100);
 
 
 /***/ },
-/* 11 */
+/* 52 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -27787,8 +29917,8 @@
 	 * Module dependencies.
 	 */
 
-	var parseuri = __webpack_require__(12);
-	var debug = __webpack_require__(13)('socket.io-client:url');
+	var parseuri = __webpack_require__(53);
+	var debug = __webpack_require__(54)('socket.io-client:url');
 
 	/**
 	 * Module exports.
@@ -27861,7 +29991,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 12 */
+/* 53 */
 /***/ function(module, exports) {
 
 	/**
@@ -27906,7 +30036,7 @@
 
 
 /***/ },
-/* 13 */
+/* 54 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {
@@ -27916,7 +30046,7 @@
 	 * Expose `debug()` as the module.
 	 */
 
-	exports = module.exports = __webpack_require__(15);
+	exports = module.exports = __webpack_require__(56);
 	exports.log = log;
 	exports.formatArgs = formatArgs;
 	exports.save = save;
@@ -28087,10 +30217,10 @@
 	  } catch (e) {}
 	}
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(14)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(55)))
 
 /***/ },
-/* 14 */
+/* 55 */
 /***/ function(module, exports) {
 
 	// shim for using process in browser
@@ -28276,7 +30406,7 @@
 
 
 /***/ },
-/* 15 */
+/* 56 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -28292,7 +30422,7 @@
 	exports.disable = disable;
 	exports.enable = enable;
 	exports.enabled = enabled;
-	exports.humanize = __webpack_require__(16);
+	exports.humanize = __webpack_require__(57);
 
 	/**
 	 * The currently active debug mode names, and names to skip.
@@ -28482,7 +30612,7 @@
 
 
 /***/ },
-/* 16 */
+/* 57 */
 /***/ function(module, exports) {
 
 	/**
@@ -28637,7 +30767,7 @@
 
 
 /***/ },
-/* 17 */
+/* 58 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -28645,11 +30775,11 @@
 	 * Module dependencies.
 	 */
 
-	var debug = __webpack_require__(18)('socket.io-parser');
-	var json = __webpack_require__(21);
-	var Emitter = __webpack_require__(24);
-	var binary = __webpack_require__(25);
-	var isBuf = __webpack_require__(27);
+	var debug = __webpack_require__(59)('socket.io-parser');
+	var json = __webpack_require__(62);
+	var Emitter = __webpack_require__(65);
+	var binary = __webpack_require__(66);
+	var isBuf = __webpack_require__(68);
 
 	/**
 	 * Protocol version.
@@ -29047,7 +31177,7 @@
 
 
 /***/ },
-/* 18 */
+/* 59 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -29057,7 +31187,7 @@
 	 * Expose `debug()` as the module.
 	 */
 
-	exports = module.exports = __webpack_require__(19);
+	exports = module.exports = __webpack_require__(60);
 	exports.log = log;
 	exports.formatArgs = formatArgs;
 	exports.save = save;
@@ -29221,7 +31351,7 @@
 
 
 /***/ },
-/* 19 */
+/* 60 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -29237,7 +31367,7 @@
 	exports.disable = disable;
 	exports.enable = enable;
 	exports.enabled = enabled;
-	exports.humanize = __webpack_require__(20);
+	exports.humanize = __webpack_require__(61);
 
 	/**
 	 * The currently active debug mode names, and names to skip.
@@ -29424,7 +31554,7 @@
 
 
 /***/ },
-/* 20 */
+/* 61 */
 /***/ function(module, exports) {
 
 	/**
@@ -29555,14 +31685,14 @@
 
 
 /***/ },
-/* 21 */
+/* 62 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/*! JSON v3.3.2 | http://bestiejs.github.io/json3 | Copyright 2012-2014, Kit Cambridge | http://kit.mit-license.org */
 	;(function () {
 	  // Detect the `define` function exposed by asynchronous module loaders. The
 	  // strict `define` check is necessary for compatibility with `r.js`.
-	  var isLoader = "function" === "function" && __webpack_require__(23);
+	  var isLoader = "function" === "function" && __webpack_require__(64);
 
 	  // A set of types used to distinguish objects from primitives.
 	  var objectTypes = {
@@ -30461,10 +32591,10 @@
 	  }
 	}).call(this);
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(22)(module), (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(63)(module), (function() { return this; }())))
 
 /***/ },
-/* 22 */
+/* 63 */
 /***/ function(module, exports) {
 
 	module.exports = function(module) {
@@ -30480,7 +32610,7 @@
 
 
 /***/ },
-/* 23 */
+/* 64 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(__webpack_amd_options__) {module.exports = __webpack_amd_options__;
@@ -30488,7 +32618,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, {}))
 
 /***/ },
-/* 24 */
+/* 65 */
 /***/ function(module, exports) {
 
 	
@@ -30658,7 +32788,7 @@
 
 
 /***/ },
-/* 25 */
+/* 66 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/*global Blob,File*/
@@ -30667,8 +32797,8 @@
 	 * Module requirements
 	 */
 
-	var isArray = __webpack_require__(26);
-	var isBuf = __webpack_require__(27);
+	var isArray = __webpack_require__(67);
+	var isBuf = __webpack_require__(68);
 
 	/**
 	 * Replaces every Buffer | ArrayBuffer in packet with a numbered placeholder.
@@ -30806,7 +32936,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 26 */
+/* 67 */
 /***/ function(module, exports) {
 
 	module.exports = Array.isArray || function (arr) {
@@ -30815,7 +32945,7 @@
 
 
 /***/ },
-/* 27 */
+/* 68 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -30835,7 +32965,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 28 */
+/* 69 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -30843,15 +32973,15 @@
 	 * Module dependencies.
 	 */
 
-	var eio = __webpack_require__(29);
-	var Socket = __webpack_require__(59);
-	var Emitter = __webpack_require__(60);
-	var parser = __webpack_require__(17);
-	var on = __webpack_require__(62);
-	var bind = __webpack_require__(63);
-	var debug = __webpack_require__(13)('socket.io-client:manager');
-	var indexOf = __webpack_require__(57);
-	var Backoff = __webpack_require__(64);
+	var eio = __webpack_require__(70);
+	var Socket = __webpack_require__(100);
+	var Emitter = __webpack_require__(101);
+	var parser = __webpack_require__(58);
+	var on = __webpack_require__(103);
+	var bind = __webpack_require__(104);
+	var debug = __webpack_require__(54)('socket.io-client:manager');
+	var indexOf = __webpack_require__(98);
+	var Backoff = __webpack_require__(105);
 
 	/**
 	 * IE6+ hasOwnProperty
@@ -31401,19 +33531,19 @@
 
 
 /***/ },
-/* 29 */
+/* 70 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
-	module.exports = __webpack_require__(30);
+	module.exports = __webpack_require__(71);
 
 
 /***/ },
-/* 30 */
+/* 71 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
-	module.exports = __webpack_require__(31);
+	module.exports = __webpack_require__(72);
 
 	/**
 	 * Exports parser
@@ -31421,25 +33551,25 @@
 	 * @api public
 	 *
 	 */
-	module.exports.parser = __webpack_require__(38);
+	module.exports.parser = __webpack_require__(79);
 
 
 /***/ },
-/* 31 */
+/* 72 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies.
 	 */
 
-	var transports = __webpack_require__(32);
-	var Emitter = __webpack_require__(47);
-	var debug = __webpack_require__(51)('engine.io-client:socket');
-	var index = __webpack_require__(57);
-	var parser = __webpack_require__(38);
-	var parseuri = __webpack_require__(12);
-	var parsejson = __webpack_require__(58);
-	var parseqs = __webpack_require__(48);
+	var transports = __webpack_require__(73);
+	var Emitter = __webpack_require__(88);
+	var debug = __webpack_require__(92)('engine.io-client:socket');
+	var index = __webpack_require__(98);
+	var parser = __webpack_require__(79);
+	var parseuri = __webpack_require__(53);
+	var parsejson = __webpack_require__(99);
+	var parseqs = __webpack_require__(89);
 
 	/**
 	 * Module exports.
@@ -31571,9 +33701,9 @@
 	 */
 
 	Socket.Socket = Socket;
-	Socket.Transport = __webpack_require__(37);
-	Socket.transports = __webpack_require__(32);
-	Socket.parser = __webpack_require__(38);
+	Socket.Transport = __webpack_require__(78);
+	Socket.transports = __webpack_require__(73);
+	Socket.parser = __webpack_require__(79);
 
 	/**
 	 * Creates transport of the given type.
@@ -32170,17 +34300,17 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 32 */
+/* 73 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies
 	 */
 
-	var XMLHttpRequest = __webpack_require__(33);
-	var XHR = __webpack_require__(35);
-	var JSONP = __webpack_require__(54);
-	var websocket = __webpack_require__(55);
+	var XMLHttpRequest = __webpack_require__(74);
+	var XHR = __webpack_require__(76);
+	var JSONP = __webpack_require__(95);
+	var websocket = __webpack_require__(96);
 
 	/**
 	 * Export transports.
@@ -32230,12 +34360,12 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 33 */
+/* 74 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {// browser shim for xmlhttprequest module
 
-	var hasCORS = __webpack_require__(34);
+	var hasCORS = __webpack_require__(75);
 
 	module.exports = function (opts) {
 	  var xdomain = opts.xdomain;
@@ -32274,7 +34404,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 34 */
+/* 75 */
 /***/ function(module, exports) {
 
 	
@@ -32297,18 +34427,18 @@
 
 
 /***/ },
-/* 35 */
+/* 76 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module requirements.
 	 */
 
-	var XMLHttpRequest = __webpack_require__(33);
-	var Polling = __webpack_require__(36);
-	var Emitter = __webpack_require__(47);
-	var inherit = __webpack_require__(49);
-	var debug = __webpack_require__(51)('engine.io-client:polling-xhr');
+	var XMLHttpRequest = __webpack_require__(74);
+	var Polling = __webpack_require__(77);
+	var Emitter = __webpack_require__(88);
+	var inherit = __webpack_require__(90);
+	var debug = __webpack_require__(92)('engine.io-client:polling-xhr');
 
 	/**
 	 * Module exports.
@@ -32728,19 +34858,19 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 36 */
+/* 77 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
 	 * Module dependencies.
 	 */
 
-	var Transport = __webpack_require__(37);
-	var parseqs = __webpack_require__(48);
-	var parser = __webpack_require__(38);
-	var inherit = __webpack_require__(49);
-	var yeast = __webpack_require__(50);
-	var debug = __webpack_require__(51)('engine.io-client:polling');
+	var Transport = __webpack_require__(78);
+	var parseqs = __webpack_require__(89);
+	var parser = __webpack_require__(79);
+	var inherit = __webpack_require__(90);
+	var yeast = __webpack_require__(91);
+	var debug = __webpack_require__(92)('engine.io-client:polling');
 
 	/**
 	 * Module exports.
@@ -32753,7 +34883,7 @@
 	 */
 
 	var hasXHR2 = (function () {
-	  var XMLHttpRequest = __webpack_require__(33);
+	  var XMLHttpRequest = __webpack_require__(74);
 	  var xhr = new XMLHttpRequest({ xdomain: false });
 	  return null != xhr.responseType;
 	})();
@@ -32979,15 +35109,15 @@
 
 
 /***/ },
-/* 37 */
+/* 78 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
 	 * Module dependencies.
 	 */
 
-	var parser = __webpack_require__(38);
-	var Emitter = __webpack_require__(47);
+	var parser = __webpack_require__(79);
+	var Emitter = __webpack_require__(88);
 
 	/**
 	 * Module exports.
@@ -33142,22 +35272,22 @@
 
 
 /***/ },
-/* 38 */
+/* 79 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies.
 	 */
 
-	var keys = __webpack_require__(39);
-	var hasBinary = __webpack_require__(40);
-	var sliceBuffer = __webpack_require__(42);
-	var after = __webpack_require__(43);
-	var utf8 = __webpack_require__(44);
+	var keys = __webpack_require__(80);
+	var hasBinary = __webpack_require__(81);
+	var sliceBuffer = __webpack_require__(83);
+	var after = __webpack_require__(84);
+	var utf8 = __webpack_require__(85);
 
 	var base64encoder;
 	if (global && global.ArrayBuffer) {
-	  base64encoder = __webpack_require__(45);
+	  base64encoder = __webpack_require__(86);
 	}
 
 	/**
@@ -33215,7 +35345,7 @@
 	 * Create a blob api even for blob builder when vendor prefixes exist
 	 */
 
-	var Blob = __webpack_require__(46);
+	var Blob = __webpack_require__(87);
 
 	/**
 	 * Encodes a packet.
@@ -33758,7 +35888,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 39 */
+/* 80 */
 /***/ function(module, exports) {
 
 	
@@ -33783,7 +35913,7 @@
 
 
 /***/ },
-/* 40 */
+/* 81 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -33791,7 +35921,7 @@
 	 * Module requirements.
 	 */
 
-	var isArray = __webpack_require__(41);
+	var isArray = __webpack_require__(82);
 
 	/**
 	 * Module exports.
@@ -33849,7 +35979,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 41 */
+/* 82 */
 /***/ function(module, exports) {
 
 	module.exports = Array.isArray || function (arr) {
@@ -33858,7 +35988,7 @@
 
 
 /***/ },
-/* 42 */
+/* 83 */
 /***/ function(module, exports) {
 
 	/**
@@ -33893,7 +36023,7 @@
 
 
 /***/ },
-/* 43 */
+/* 84 */
 /***/ function(module, exports) {
 
 	module.exports = after
@@ -33927,7 +36057,7 @@
 
 
 /***/ },
-/* 44 */
+/* 85 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/*! https://mths.be/wtf8 v1.0.0 by @mathias */
@@ -34163,10 +36293,10 @@
 
 	}(this));
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(22)(module), (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(63)(module), (function() { return this; }())))
 
 /***/ },
-/* 45 */
+/* 86 */
 /***/ function(module, exports) {
 
 	/*
@@ -34239,7 +36369,7 @@
 
 
 /***/ },
-/* 46 */
+/* 87 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
@@ -34342,7 +36472,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 47 */
+/* 88 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -34511,7 +36641,7 @@
 
 
 /***/ },
-/* 48 */
+/* 89 */
 /***/ function(module, exports) {
 
 	/**
@@ -34554,7 +36684,7 @@
 
 
 /***/ },
-/* 49 */
+/* 90 */
 /***/ function(module, exports) {
 
 	
@@ -34566,7 +36696,7 @@
 	};
 
 /***/ },
-/* 50 */
+/* 91 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -34640,7 +36770,7 @@
 
 
 /***/ },
-/* 51 */
+/* 92 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {
@@ -34650,7 +36780,7 @@
 	 * Expose `debug()` as the module.
 	 */
 
-	exports = module.exports = __webpack_require__(52);
+	exports = module.exports = __webpack_require__(93);
 	exports.log = log;
 	exports.formatArgs = formatArgs;
 	exports.save = save;
@@ -34821,10 +36951,10 @@
 	  } catch (e) {}
 	}
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(14)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(55)))
 
 /***/ },
-/* 52 */
+/* 93 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -34840,7 +36970,7 @@
 	exports.disable = disable;
 	exports.enable = enable;
 	exports.enabled = enabled;
-	exports.humanize = __webpack_require__(53);
+	exports.humanize = __webpack_require__(94);
 
 	/**
 	 * The currently active debug mode names, and names to skip.
@@ -35030,7 +37160,7 @@
 
 
 /***/ },
-/* 53 */
+/* 94 */
 /***/ function(module, exports) {
 
 	/**
@@ -35185,7 +37315,7 @@
 
 
 /***/ },
-/* 54 */
+/* 95 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -35193,8 +37323,8 @@
 	 * Module requirements.
 	 */
 
-	var Polling = __webpack_require__(36);
-	var inherit = __webpack_require__(49);
+	var Polling = __webpack_require__(77);
+	var inherit = __webpack_require__(90);
 
 	/**
 	 * Module exports.
@@ -35423,24 +37553,24 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 55 */
+/* 96 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies.
 	 */
 
-	var Transport = __webpack_require__(37);
-	var parser = __webpack_require__(38);
-	var parseqs = __webpack_require__(48);
-	var inherit = __webpack_require__(49);
-	var yeast = __webpack_require__(50);
-	var debug = __webpack_require__(51)('engine.io-client:websocket');
+	var Transport = __webpack_require__(78);
+	var parser = __webpack_require__(79);
+	var parseqs = __webpack_require__(89);
+	var inherit = __webpack_require__(90);
+	var yeast = __webpack_require__(91);
+	var debug = __webpack_require__(92)('engine.io-client:websocket');
 	var BrowserWebSocket = global.WebSocket || global.MozWebSocket;
 	var NodeWebSocket;
 	if (typeof window === 'undefined') {
 	  try {
-	    NodeWebSocket = __webpack_require__(56);
+	    NodeWebSocket = __webpack_require__(97);
 	  } catch (e) { }
 	}
 
@@ -35715,13 +37845,13 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 56 */
+/* 97 */
 /***/ function(module, exports) {
 
 	/* (ignored) */
 
 /***/ },
-/* 57 */
+/* 98 */
 /***/ function(module, exports) {
 
 	
@@ -35736,7 +37866,7 @@
 	};
 
 /***/ },
-/* 58 */
+/* 99 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
@@ -35774,7 +37904,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 59 */
+/* 100 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -35782,13 +37912,13 @@
 	 * Module dependencies.
 	 */
 
-	var parser = __webpack_require__(17);
-	var Emitter = __webpack_require__(60);
-	var toArray = __webpack_require__(61);
-	var on = __webpack_require__(62);
-	var bind = __webpack_require__(63);
-	var debug = __webpack_require__(13)('socket.io-client:socket');
-	var hasBin = __webpack_require__(40);
+	var parser = __webpack_require__(58);
+	var Emitter = __webpack_require__(101);
+	var toArray = __webpack_require__(102);
+	var on = __webpack_require__(103);
+	var bind = __webpack_require__(104);
+	var debug = __webpack_require__(54)('socket.io-client:socket');
+	var hasBin = __webpack_require__(81);
 
 	/**
 	 * Module exports.
@@ -36199,7 +38329,7 @@
 
 
 /***/ },
-/* 60 */
+/* 101 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -36368,7 +38498,7 @@
 
 
 /***/ },
-/* 61 */
+/* 102 */
 /***/ function(module, exports) {
 
 	module.exports = toArray
@@ -36387,7 +38517,7 @@
 
 
 /***/ },
-/* 62 */
+/* 103 */
 /***/ function(module, exports) {
 
 	
@@ -36417,7 +38547,7 @@
 
 
 /***/ },
-/* 63 */
+/* 104 */
 /***/ function(module, exports) {
 
 	/**
@@ -36446,7 +38576,7 @@
 
 
 /***/ },
-/* 64 */
+/* 105 */
 /***/ function(module, exports) {
 
 	
@@ -36537,882 +38667,7 @@
 
 
 /***/ },
-/* 65 */
-/***/ function(module, exports) {
-
-	'use strict';
-
-	var _log = function(title) {
-	    return function(message) {
-	        console.log(Date.now()+': ', title || 'generic', ': ', message);
-	    }
-	};
-
-	module.exports = _log;
-
-
-/***/ },
-/* 66 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict'
-
-	var _ = __webpack_require__(2);
-	var factory = __webpack_require__(6);
-	var util = __webpack_require__(8);
-	var _log = __webpack_require__(65)('location');
-
-	var DEBUG = true;
-
-	var Location = function() {
-	    var self = this;
-
-	    var lastKnowPosition = {};
-
-	    function rndi(min,max)
-	    {
-	      return (Math.random() * (max - min) + min).toFixed(5)
-	    }
-
-	    this.getLocationAPI = function() {
-
-	        if ("geolocation" in navigator) {
-	            this.geo = navigator.geolocation;
-	            return this;
-	        }
-
-	        alert('Can\'t access the GPS in the device.');
-	        return this;
-	    };
-
-	    this.getLocation = function() {
-	        _log('requesting location');
-
-	        self.trigger('geolocation:working');
-
-	        navigator.geolocation.getCurrentPosition(function(position) {
-	          var pos = {};
-	          if(DEBUG){
-	            pos = {
-	                lat: position.coords.latitude  + parseFloat(rndi(0,0.04)),
-	                lng: position.coords.longitude + parseFloat(rndi(0,0.06))
-	            };
-	          }else{
-	            pos = {
-	               lat: position.coords.latitude,
-	               lng: position.coords.longitude
-	           };
-	          }
-
-	            lastKnowPosition.latitude = position.coords.latitude;
-	            lastKnowPosition.longitude = position.coords.latitude;
-
-	            _log('location found: ' + JSON.stringify(pos));
-	            self.trigger('geolocation:position', pos);
-	        });
-	    };
-
-	    this.track = function(){
-	      self.trackTimer =  setInterval(this.getLocation, 15000);
-	    };
-
-	    this.stopTracking = function(){
-	      clearInterval(self.trackTime);
-	    };
-
-	    this.getLastKnowPosition = function() {
-	        return lastKnowPosition;
-	    };
-	};
-
-	util.extendWithBackboneEvents(Location);
-
-	module.exports = new Location();
-
-
-/***/ },
-/* 67 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var _ = __webpack_require__(2);
-	var Backbone = __webpack_require__(1);
-	var _log = __webpack_require__(65)('user-model');
-
-	var User = {
-
-	  defaults: {
-	    user: '',
-	    phone: ''
-	  },
-
-	  initialize: function(){
-	    var userDB = localStorage.getItem('user');
-
-	    if(!_.isEmpty(userDB))
-	      this.attributes = JSON.parse(userDB);
-	    else
-	      _log('User not found...');
-	  },
-
-	  checkCredentials: function(){
-	    var invalid = _.values(this.attributes).filter(_.isEmpty).length > 0;
-
-	    if(invalid)
-	      this.trigger('user:not_found', this);
-	    else
-	      this.trigger('user:found', this);
-	  },
-
-	  saveInLocalStorage: function(){
-	    if(this.isValid()) {
-	      var userDB = localStorage.setItem('user', JSON.stringify(this.attributes));
-	      this.checkCredentials();
-	    }
-	  },
-
-	  validate: function(attrs) {
-	    delete attrs.id;
-	    var invalid = _.values(attrs).filter(_.isEmpty).length > 0;
-
-	    return invalid;
-	  }
-	};
-
-	var UserModel = Backbone.Model.extend(User);
-
-	module.exports = new UserModel();
-
-
-/***/ },
-/* 68 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var Backbone = __webpack_require__(1);
-	var _ = __webpack_require__(2);
-	var $ = __webpack_require__(3);
-
-	var _log = __webpack_require__(65)('home');
-
-	var Home = {
-
-	    events: {
-	        'click .down.call': 'callDriver'
-	    },
-
-	    callDriver: function(){
-	      _log('Calling Driver');
-	      this.trigger('open:modal');
-	    },
-
-	};
-
-	module.exports = Backbone.View.extend(Home);
-
-
-/***/ },
-/* 69 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var Backbone = __webpack_require__(1);
-	var _ = __webpack_require__(2);
-	var $ = __webpack_require__(3);
-
-	var styles = __webpack_require__(70);
-	var template = __webpack_require__(74);
-	var _log = __webpack_require__(65)('Login');
-	var util = __webpack_require__(8);
-
-	var Login = {
-
-	    className: 'login-form',
-
-	    events: {
-	        'keyup input': 'check',
-	        'click .register': 'register',
-	        'touchmove': 'ignore',
-	    },
-
-	    ignore: function(e){
-	      e.preventDefault();
-	    },
-
-	    render: function() {
-	      this.$el.html(template());
-
-	      this.$user = this.$el.find('#user');
-	      this.$phone = this.$el.find('#phone');
-	      this.$register = this.$el.find('.register').prop('disabled', true);
-
-	      return this;
-	    },
-
-	    show: function() {
-	      this.trigger('cover:show');
-	      this.$el.addClass('show');
-	    },
-
-	    close: function(){
-	      this.trigger('cover:hide');
-	      this.remove();
-	    },
-
-	    register: function(e){
-	      e.preventDefault();
-	      this.model.saveInLocalStorage();
-	    },
-
-	    check: function() {
-	      this.model.set('user', this.$user.val());
-	      this.model.set('phone', this.$phone.val());
-
-	      if(this.model.isValid())
-	        this.$register.prop('disabled', false);
-	    }
-	};
-
-	module.exports = Backbone.View.extend(Login);
-
-
-/***/ },
-/* 70 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// style-loader: Adds some css to the DOM by adding a <style> tag
-
-	// load the styles
-	var content = __webpack_require__(71);
-	if(typeof content === 'string') content = [[module.id, content, '']];
-	// add the styles to the DOM
-	var update = __webpack_require__(73)(content, {});
-	// Hot Module Replacement
-	if(false) {
-		// When the styles change, update the <style> tags
-		module.hot.accept("!!/Users/cvaldez/Documents/devs/wfm-taxi/client/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/wfm-taxi/client/www/style/form.css", function() {
-			var newContent = require("!!/Users/cvaldez/Documents/devs/wfm-taxi/client/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/wfm-taxi/client/www/style/form.css");
-			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
-			update(newContent);
-		});
-		// When the module is disposed, remove the <style> tags
-		module.hot.dispose(function() { update(); });
-	}
-
-/***/ },
-/* 71 */
-/***/ function(module, exports, __webpack_require__) {
-
-	exports = module.exports = __webpack_require__(72)();
-	// imports
-
-
-	// module
-	exports.push([module.id, "\n\n.login-form {\n  height: 100%;\n  width: 100%;\n  z-index: 4;\n  position: absolute;\n  background: transparent;\n  top: 0px;\n  opacity: 0;\n  -webkit-transition: width, top, opacity 1s;\n}\n\n.form-wrapper {\n  margin-top: 60px;\n}\n\n.form-container {\n  position: relative;\n  width: 360px;\n  margin-right: auto;\n  margin-left: auto;\n  margin-top: 20px;\n}\n\n\n.box-form {\n  width: 86%;\n  margin-top: 10px;\n  margin-right: auto;\n  margin-left: auto;\n}\n\n\n.box-form > input {\n height: 40px;\n background: #495560;\n opacity: 0.8;\n color: white;\n text-transform: uppercase;\n border-style: none;\n}\n\n.box-form > p {\n  color: #333333;\n  font-family: Impact, Charcoal, sans-serif;\n  /*font-family: Impact, Charcoal, sans-serif;\n  font-family: Verdana, Geneva, sans-serif;\n  font-family: ‘Lucida Console’, Monaco, monospace;\n  font-family: ‘Trebuchet MS’, Helvetica, sans-serif; */\n}\n\n.login-form.show {\n  opacity: 1;\n}\n\n.box-form > .title {\n  text-align: center;\n  font-size: 59px;\n  color:white;\n}\n\n.icon-descriptor {\n    width: 87px;\n    position: absolute;\n    height: 70px;\n    float: left;\n    background-color: black;\n    border-radius: 2px;\n    opacity: 0.6;\n    left: 21px;\n}\n", ""]);
-
-	// exports
-
-
-/***/ },
-/* 72 */
-/***/ function(module, exports) {
-
-	/*
-		MIT License http://www.opensource.org/licenses/mit-license.php
-		Author Tobias Koppers @sokra
-	*/
-	// css base code, injected by the css-loader
-	module.exports = function() {
-		var list = [];
-
-		// return the list of modules as css string
-		list.toString = function toString() {
-			var result = [];
-			for(var i = 0; i < this.length; i++) {
-				var item = this[i];
-				if(item[2]) {
-					result.push("@media " + item[2] + "{" + item[1] + "}");
-				} else {
-					result.push(item[1]);
-				}
-			}
-			return result.join("");
-		};
-
-		// import a list of modules into the list
-		list.i = function(modules, mediaQuery) {
-			if(typeof modules === "string")
-				modules = [[null, modules, ""]];
-			var alreadyImportedModules = {};
-			for(var i = 0; i < this.length; i++) {
-				var id = this[i][0];
-				if(typeof id === "number")
-					alreadyImportedModules[id] = true;
-			}
-			for(i = 0; i < modules.length; i++) {
-				var item = modules[i];
-				// skip already imported module
-				// this implementation is not 100% perfect for weird media query combinations
-				//  when a module is imported multiple times with different media queries.
-				//  I hope this will never occur (Hey this way we have smaller bundles)
-				if(typeof item[0] !== "number" || !alreadyImportedModules[item[0]]) {
-					if(mediaQuery && !item[2]) {
-						item[2] = mediaQuery;
-					} else if(mediaQuery) {
-						item[2] = "(" + item[2] + ") and (" + mediaQuery + ")";
-					}
-					list.push(item);
-				}
-			}
-		};
-		return list;
-	};
-
-
-/***/ },
-/* 73 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/*
-		MIT License http://www.opensource.org/licenses/mit-license.php
-		Author Tobias Koppers @sokra
-	*/
-	var stylesInDom = {},
-		memoize = function(fn) {
-			var memo;
-			return function () {
-				if (typeof memo === "undefined") memo = fn.apply(this, arguments);
-				return memo;
-			};
-		},
-		isIE9 = memoize(function() {
-			return /msie 9\b/.test(window.navigator.userAgent.toLowerCase());
-		}),
-		getHeadElement = memoize(function () {
-			return document.head || document.getElementsByTagName("head")[0];
-		}),
-		singletonElement = null,
-		singletonCounter = 0;
-
-	module.exports = function(list, options) {
-		if(false) {
-			if(typeof document !== "object") throw new Error("The style-loader cannot be used in a non-browser environment");
-		}
-
-		options = options || {};
-		// Force single-tag solution on IE9, which has a hard limit on the # of <style>
-		// tags it will allow on a page
-		if (typeof options.singleton === "undefined") options.singleton = isIE9();
-
-		var styles = listToStyles(list);
-		addStylesToDom(styles, options);
-
-		return function update(newList) {
-			var mayRemove = [];
-			for(var i = 0; i < styles.length; i++) {
-				var item = styles[i];
-				var domStyle = stylesInDom[item.id];
-				domStyle.refs--;
-				mayRemove.push(domStyle);
-			}
-			if(newList) {
-				var newStyles = listToStyles(newList);
-				addStylesToDom(newStyles, options);
-			}
-			for(var i = 0; i < mayRemove.length; i++) {
-				var domStyle = mayRemove[i];
-				if(domStyle.refs === 0) {
-					for(var j = 0; j < domStyle.parts.length; j++)
-						domStyle.parts[j]();
-					delete stylesInDom[domStyle.id];
-				}
-			}
-		};
-	}
-
-	function addStylesToDom(styles, options) {
-		for(var i = 0; i < styles.length; i++) {
-			var item = styles[i];
-			var domStyle = stylesInDom[item.id];
-			if(domStyle) {
-				domStyle.refs++;
-				for(var j = 0; j < domStyle.parts.length; j++) {
-					domStyle.parts[j](item.parts[j]);
-				}
-				for(; j < item.parts.length; j++) {
-					domStyle.parts.push(addStyle(item.parts[j], options));
-				}
-			} else {
-				var parts = [];
-				for(var j = 0; j < item.parts.length; j++) {
-					parts.push(addStyle(item.parts[j], options));
-				}
-				stylesInDom[item.id] = {id: item.id, refs: 1, parts: parts};
-			}
-		}
-	}
-
-	function listToStyles(list) {
-		var styles = [];
-		var newStyles = {};
-		for(var i = 0; i < list.length; i++) {
-			var item = list[i];
-			var id = item[0];
-			var css = item[1];
-			var media = item[2];
-			var sourceMap = item[3];
-			var part = {css: css, media: media, sourceMap: sourceMap};
-			if(!newStyles[id])
-				styles.push(newStyles[id] = {id: id, parts: [part]});
-			else
-				newStyles[id].parts.push(part);
-		}
-		return styles;
-	}
-
-	function createStyleElement() {
-		var styleElement = document.createElement("style");
-		var head = getHeadElement();
-		styleElement.type = "text/css";
-		head.appendChild(styleElement);
-		return styleElement;
-	}
-
-	function addStyle(obj, options) {
-		var styleElement, update, remove;
-
-		if (options.singleton) {
-			var styleIndex = singletonCounter++;
-			styleElement = singletonElement || (singletonElement = createStyleElement());
-			update = applyToSingletonTag.bind(null, styleElement, styleIndex, false);
-			remove = applyToSingletonTag.bind(null, styleElement, styleIndex, true);
-		} else {
-			styleElement = createStyleElement();
-			update = applyToTag.bind(null, styleElement);
-			remove = function () {
-				styleElement.parentNode.removeChild(styleElement);
-			};
-		}
-
-		update(obj);
-
-		return function updateStyle(newObj) {
-			if(newObj) {
-				if(newObj.css === obj.css && newObj.media === obj.media && newObj.sourceMap === obj.sourceMap)
-					return;
-				update(obj = newObj);
-			} else {
-				remove();
-			}
-		};
-	}
-
-	function replaceText(source, id, replacement) {
-		var boundaries = ["/** >>" + id + " **/", "/** " + id + "<< **/"];
-		var start = source.lastIndexOf(boundaries[0]);
-		var wrappedReplacement = replacement
-			? (boundaries[0] + replacement + boundaries[1])
-			: "";
-		if (source.lastIndexOf(boundaries[0]) >= 0) {
-			var end = source.lastIndexOf(boundaries[1]) + boundaries[1].length;
-			return source.slice(0, start) + wrappedReplacement + source.slice(end);
-		} else {
-			return source + wrappedReplacement;
-		}
-	}
-
-	function applyToSingletonTag(styleElement, index, remove, obj) {
-		var css = remove ? "" : obj.css;
-
-		if(styleElement.styleSheet) {
-			styleElement.styleSheet.cssText = replaceText(styleElement.styleSheet.cssText, index, css);
-		} else {
-			var cssNode = document.createTextNode(css);
-			var childNodes = styleElement.childNodes;
-			if (childNodes[index]) styleElement.removeChild(childNodes[index]);
-			if (childNodes.length) {
-				styleElement.insertBefore(cssNode, childNodes[index]);
-			} else {
-				styleElement.appendChild(cssNode);
-			}
-		}
-	}
-
-	function applyToTag(styleElement, obj) {
-		var css = obj.css;
-		var media = obj.media;
-		var sourceMap = obj.sourceMap;
-
-		if(sourceMap && typeof btoa === "function") {
-			try {
-				css += "\n/*# sourceMappingURL=data:application/json;base64," + btoa(JSON.stringify(sourceMap)) + " */";
-				css = "@import url(\"data:text/css;base64," + btoa(css) + "\")";
-			} catch(e) {}
-		}
-
-		if(media) {
-			styleElement.setAttribute("media", media)
-		}
-
-		if(styleElement.styleSheet) {
-			styleElement.styleSheet.cssText = css;
-		} else {
-			while(styleElement.firstChild) {
-				styleElement.removeChild(styleElement.firstChild);
-			}
-			styleElement.appendChild(document.createTextNode(css));
-		}
-	}
-
-
-/***/ },
-/* 74 */
-/***/ function(module, exports) {
-
-	module.exports = function(obj){
-	var __t,__p='',__j=Array.prototype.join,print=function(){__p+=__j.call(arguments,'');};
-	with(obj||{}){
-	__p+='<div class="form-container">\n      <div class="box-form">\n        <p class="title">Taxi Demo</p>\n      </div>\n    <div class="form-wrapper">\n        <fieldset>\n\n            <!-- Form Name -->\n            <!-- <legend>Login</legend> -->\n            <!-- Text input-->\n\n            <div class="box-form box-input">\n\n                <input id="user" name="user" placeholder="User" style="" class="form-control input-md" required="" type="text">\n            </div>\n\n\n\n            <div class="box-form box-input">\n                <input id="phone" name="phone" type="tel" placeholder="Password" class="form-control input-md" required="" type="text">\n                <span class="help-block"></span>\n            </div>\n\n\n            <!-- Button -->\n\n            <div class="box-form box-input">\n                <button id="login-btn" name="login-btn" class="btn btn-primary btn-lg dropdown-toggle btn-next register">\n                    Continue\n                  </button>\n            </div>\n\n\n        </fieldset>\n    </div>\n\n\n</div>\n';
-	}
-	return __p;
-	};
-
-
-/***/ },
-/* 75 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var Backbone = __webpack_require__(1);
-	var _ = __webpack_require__(2);
-	var $ = __webpack_require__(3);
-	var styles = __webpack_require__(76);
-
-	var NotifyView = {
-
-	  className: 'notify loading',
-
-	  initialize: function(options){
-	    this.$msg = $('<p>');
-	    this.$el.html(this.$msg);
-	  },
-
-	  update: function(msg){
-	    this.$msg.html(msg);
-	    this.show();
-	  },
-
-	  show:function(){
-	    this.$el.removeClass('hide-notification');
-	  },
-
-	  hide: function(){
-	   this.$el.addClass('hide-notification');
-	  },
-
-	};
-
-	module.exports =  Backbone.View.extend(NotifyView);
-
-
-/***/ },
-/* 76 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// style-loader: Adds some css to the DOM by adding a <style> tag
-
-	// load the styles
-	var content = __webpack_require__(77);
-	if(typeof content === 'string') content = [[module.id, content, '']];
-	// add the styles to the DOM
-	var update = __webpack_require__(73)(content, {});
-	// Hot Module Replacement
-	if(false) {
-		// When the styles change, update the <style> tags
-		module.hot.accept("!!/Users/cvaldez/Documents/devs/wfm-taxi/client/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/wfm-taxi/client/www/style/notify.css", function() {
-			var newContent = require("!!/Users/cvaldez/Documents/devs/wfm-taxi/client/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/wfm-taxi/client/www/style/notify.css");
-			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
-			update(newContent);
-		});
-		// When the module is disposed, remove the <style> tags
-		module.hot.dispose(function() { update(); });
-	}
-
-/***/ },
-/* 77 */
-/***/ function(module, exports, __webpack_require__) {
-
-	exports = module.exports = __webpack_require__(72)();
-	// imports
-
-
-	// module
-	exports.push([module.id, ".notify {\n  top: 0px;\n  position: absolute;\n  background-color: black;\n  width: 100%;\n  opacity: 0.8;\n  transition: opacity .85s ease-in-out;\n  -webkit-transition: opacity .85s ease-in-out;\n}\n\n.loading {\n  background-repeat: no-repeat;\n  background-position-y: -4px;\n  background-position-x: -2px;\n  background-image: url(" + __webpack_require__(78) + ");\n}\n\n.hide-notification {\n  opacity: 0;\n}\n\n.notify > p {\n  color: white;\n  margin: 3px;\n  margin-left: 30px;\n}\n", ""]);
-
-	// exports
-
-
-/***/ },
-/* 78 */
-/***/ function(module, exports) {
-
-	module.exports = "dist/556f422652ccf3606f25070486da408f.svg";
-
-/***/ },
-/* 79 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var Backbone = __webpack_require__(1);
-	var $script = __webpack_require__(80);
-	var $ = __webpack_require__(3);
-	var _ = __webpack_require__(2);
-
-	var _log = __webpack_require__(65)('MapView');
-
-	// MapView Class listen to the following events
-	var MapView = {
-
-	    GMAP_API: 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDoez83-bCpLCFESHMiNpfkBrplOV36Hbs',
-
-
-	    /*  We need to inyect here a geolocation API, we listen for
-	     *  the following events:
-	     *
-	     *    geolocation:position
-	     *
-	     *      params  {
-	     *        lat: 'latitude',
-	     *        lng: 'longitude'
-	     *      }
-	     *
-	     *  Take a look at api/geo.js
-	     */
-
-	    initialize: function(options) {
-	        if (_.isEmpty(options.geolocationAPI)) throw "Not geolocationAPI Inyected";
-
-	        var geo = options.geolocationAPI;
-
-
-	        this.listenTo(geo, 'geolocation:position', this.getAddress);
-
-	        this.on('map:api:downloaded', this.start);
-	    },
-
-	    /*
-	     * Start
-	     * Instanciate the Google Map API.
-	     *
-	     */
-	    start: function() {
-
-	        this.geocoder = new google.maps.Geocoder;
-
-	        this.map = new google.maps.Map(this.$el[0], {
-	            zoom: 11,
-	            disableDefaultUI: true,
-	            gestureHandling: "greedy",
-	            center: {
-	                lat: 18.7357,
-	                lng: -70.1627
-	            }
-	        });
-
-	        google.maps.event.addDomListener(this.$el[0], 'touchstart', this.onTouchStart.bind(this));
-	        google.maps.event.addDomListener(this.$el[0], 'touchend', this.onTouchEnd.bind(this));
-
-	        this.trigger('map:created', this.map);
-
-	    },
-
-	    /*
-	      The map is being touch.
-	    */
-	    onTouchStart: function(){
-	      this.trigger('map:touch:start');
-	      return false; // bubble up the touchstart event, means this don't freeze the UI.
-	    },
-
-	    /*
-	      The map is being touch.
-	    */
-	    onTouchEnd: function(){
-	      this.trigger('map:touch:end');
-	      return false; // bubble up the touchstart event, means this don't freeze the UI.
-	    },
-
-
-	    /*
-	     * Download the Google Map API V3 async and start working, when the API is downloaded
-	     * we trigger an map:api:downloaded event.
-	     */
-	    loadAPI: function() {
-
-	        $script(this.GMAP_API, function() {
-	            this.trigger('map:api:downloaded');
-	        }.bind(this));
-
-	        return this;
-	    },
-
-	    /*
-	     * Quick and dirty example of using inverse Geocode Google API.
-	     *
-	     * When google maps resolve the address, we trigger an map:resolve:address and we pass a string parameter with
-	     * the address.
-	     */
-	    getAddress: function(position) {
-	        var url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=$position$&key=$key$";
-
-	        this.geocoder.geocode({
-	            'location': position
-	        }, function(results, status) {
-	            if (status === google.maps.GeocoderStatus.OK)
-	                this.trigger('map:resolve:address', results[0].formatted_address);
-	        }.bind(this));
-	    }
-	};
-
-	module.exports = Backbone.View.extend(MapView);
-
-
-/***/ },
-/* 80 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
-	  * $script.js JS loader & dependency manager
-	  * https://github.com/ded/script.js
-	  * (c) Dustin Diaz 2014 | License MIT
-	  */
-
-	(function (name, definition) {
-	  if (typeof module != 'undefined' && module.exports) module.exports = definition()
-	  else if (true) !(__WEBPACK_AMD_DEFINE_FACTORY__ = (definition), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.call(exports, __webpack_require__, exports, module)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__))
-	  else this[name] = definition()
-	})('$script', function () {
-	  var doc = document
-	    , head = doc.getElementsByTagName('head')[0]
-	    , s = 'string'
-	    , f = false
-	    , push = 'push'
-	    , readyState = 'readyState'
-	    , onreadystatechange = 'onreadystatechange'
-	    , list = {}
-	    , ids = {}
-	    , delay = {}
-	    , scripts = {}
-	    , scriptpath
-	    , urlArgs
-
-	  function every(ar, fn) {
-	    for (var i = 0, j = ar.length; i < j; ++i) if (!fn(ar[i])) return f
-	    return 1
-	  }
-	  function each(ar, fn) {
-	    every(ar, function (el) {
-	      return !fn(el)
-	    })
-	  }
-
-	  function $script(paths, idOrDone, optDone) {
-	    paths = paths[push] ? paths : [paths]
-	    var idOrDoneIsDone = idOrDone && idOrDone.call
-	      , done = idOrDoneIsDone ? idOrDone : optDone
-	      , id = idOrDoneIsDone ? paths.join('') : idOrDone
-	      , queue = paths.length
-	    function loopFn(item) {
-	      return item.call ? item() : list[item]
-	    }
-	    function callback() {
-	      if (!--queue) {
-	        list[id] = 1
-	        done && done()
-	        for (var dset in delay) {
-	          every(dset.split('|'), loopFn) && !each(delay[dset], loopFn) && (delay[dset] = [])
-	        }
-	      }
-	    }
-	    setTimeout(function () {
-	      each(paths, function loading(path, force) {
-	        if (path === null) return callback()
-	        
-	        if (!force && !/^https?:\/\//.test(path) && scriptpath) {
-	          path = (path.indexOf('.js') === -1) ? scriptpath + path + '.js' : scriptpath + path;
-	        }
-	        
-	        if (scripts[path]) {
-	          if (id) ids[id] = 1
-	          return (scripts[path] == 2) ? callback() : setTimeout(function () { loading(path, true) }, 0)
-	        }
-
-	        scripts[path] = 1
-	        if (id) ids[id] = 1
-	        create(path, callback)
-	      })
-	    }, 0)
-	    return $script
-	  }
-
-	  function create(path, fn) {
-	    var el = doc.createElement('script'), loaded
-	    el.onload = el.onerror = el[onreadystatechange] = function () {
-	      if ((el[readyState] && !(/^c|loade/.test(el[readyState]))) || loaded) return;
-	      el.onload = el[onreadystatechange] = null
-	      loaded = 1
-	      scripts[path] = 2
-	      fn()
-	    }
-	    el.async = 1
-	    el.src = urlArgs ? path + (path.indexOf('?') === -1 ? '?' : '&') + urlArgs : path;
-	    head.insertBefore(el, head.lastChild)
-	  }
-
-	  $script.get = create
-
-	  $script.order = function (scripts, id, done) {
-	    (function callback(s) {
-	      s = scripts.shift()
-	      !scripts.length ? $script(s, id, done) : $script(s, callback)
-	    }())
-	  }
-
-	  $script.path = function (p) {
-	    scriptpath = p
-	  }
-	  $script.urlArgs = function (str) {
-	    urlArgs = str;
-	  }
-	  $script.ready = function (deps, ready, req) {
-	    deps = deps[push] ? deps : [deps]
-	    var missing = [];
-	    !each(deps, function (dep) {
-	      list[dep] || missing[push](dep);
-	    }) && every(deps, function (dep) {return list[dep]}) ?
-	      ready() : !function (key) {
-	      delay[key] = delay[key] || []
-	      delay[key][push](ready)
-	      req && req(missing)
-	    }(deps.join('|'))
-	    return $script
-	  }
-
-	  $script.done = function (idOrDone) {
-	    $script([null], idOrDone)
-	  }
-
-	  return $script
-	});
-
-
-/***/ },
-/* 81 */
+/* 106 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -37421,10 +38676,10 @@
 	var $ = __webpack_require__(3);
 	var _ = __webpack_require__(2);
 
-	var styles = __webpack_require__(82);
-	var template = __webpack_require__(84);
+	var styles = __webpack_require__(107);
+	var template = __webpack_require__(109);
 
-	var _log = __webpack_require__(65)('InfoView');
+	var _log = __webpack_require__(6)('InfoView');
 
 	// InfoView Class listen to the following events
 	var InfoView = {
@@ -37520,21 +38775,21 @@
 
 
 /***/ },
-/* 82 */
+/* 107 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(83);
+	var content = __webpack_require__(108);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(73)(content, {});
+	var update = __webpack_require__(19)(content, {});
 	// Hot Module Replacement
 	if(false) {
 		// When the styles change, update the <style> tags
-		module.hot.accept("!!/Users/cvaldez/Documents/devs/wfm-taxi/client/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/wfm-taxi/client/www/style/info.css", function() {
-			var newContent = require("!!/Users/cvaldez/Documents/devs/wfm-taxi/client/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/wfm-taxi/client/www/style/info.css");
+		module.hot.accept("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/info.css", function() {
+			var newContent = require("!!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/node_modules/css-loader/index.js!/Users/mjocarroll/Documents/projects/network-rail/template/map-push-client-demo/www/style/info.css");
 			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
 			update(newContent);
 		});
@@ -37543,10 +38798,10 @@
 	}
 
 /***/ },
-/* 83 */
+/* 108 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(72)();
+	exports = module.exports = __webpack_require__(18)();
 	// imports
 
 
@@ -37557,7 +38812,7 @@
 
 
 /***/ },
-/* 84 */
+/* 109 */
 /***/ function(module, exports) {
 
 	module.exports = function(obj){
@@ -37571,202 +38826,6 @@
 	}
 	return __p;
 	};
-
-
-/***/ },
-/* 85 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var _ = __webpack_require__(2);
-	var $ = __webpack_require__(3);
-	var appendEvents = __webpack_require__(6);
-	var _log = __webpack_require__(65)('Marker');
-
-	var cache = {};
-	var userMark = {};
-	var InfoView = null;
-
-	var MapMarkers = function(Map, _InfoView) {
-
-	    InfoView = _InfoView || _.identity;
-
-	    //Remove the user from this device from the tracking list.
-	    function removeUser(User, data) {
-	        var userName = User.get('user');
-
-	        if (!_.isUndefined(data[userName])) {
-	            delete data[userName];
-	        }
-
-	        return data;
-	    };
-
-	    function createDriversMarker(memo, data, driverName) {
-	        console.log('data->', data);
-
-	        memo[driverName] = {
-	            data: {
-	                position: data,
-	                marker: createMark(data.position)
-	            }
-	        };
-
-	        return memo;
-	    };
-
-	    function createMark(position) {
-	        var marker = new google.maps.Marker();
-
-	        marker.setAnimation(google.maps.Animation.DROP);
-	        marker.setPosition(position);
-	        marker.setMap(Map);
-
-	        return marker;
-	    };
-
-	    this.setOrigin = function(driverName) {
-	        _log('setting:origin -> ' + driverName);
-	        var driver = cache[driverName];
-	    };
-
-	    this.markDriversInMap = function(user, drivers) {
-	        var _drivers = removeUser(user, drivers);
-	        cache = _.reduce(_drivers, createDriversMarker, {});
-	    };
-
-	    this.markUserInMap = function(user, position) {
-
-	        userMark.marker = createMark(position);
-	        userMark.userInfo = user;
-
-	        Map.setCenter(position);
-
-	        userMark
-	            .marker
-	            .setIcon(__webpack_require__(86));
-
-	        userMark.infoWindow =  new InfoView({
-	          user: user, 
-	          marker: userMark.marker
-	        })
-
-	        userMark.infoWindow.updateAddress();
-	    };
-
-	    this.getMap = function() {
-	        return Map;
-	    };
-
-	    this.update = function(drivers) {
-	        _log('cloud update [drivers] ->' + JSON.stringify(drivers));
-	    };
-	};
-
-	module.exports = appendEvents(MapMarkers);
-
-
-/***/ },
-/* 86 */
-/***/ function(module, exports) {
-
-	module.exports = "dist/1ac1109ad174b034482342f00a8e7746.svg";
-
-/***/ },
-/* 87 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-	'use strict';
-
-	var Backbone = __webpack_require__(1);
-	var _ = __webpack_require__(2);
-	var $ = __webpack_require__(3);
-
-	var _log = __webpack_require__(65)('Modal');
-	var styles = __webpack_require__(88);
-
-	var BLUR_STYLE = 'blur-background';
-	var OPEN_STYLE = "open";
-
-	var Cover = {
-	    className: 'modal-demo',
-
-	    events: {
-	      'ontouchmove': 'ignore',
-	    },
-
-	    ignore: function(e) {
-	      e.preventDefault();
-	    },
-
-	    initialize: function(opts) {
-	      this.$layer = opts.layer;
-	    },
-
-	    hide:function() {
-	      this.$layer.removeClass(BLUR_STYLE)
-	    },
-
-	    show: function() {
-	      this.$layer.addClass(BLUR_STYLE)
-	      return this;
-	    },
-
-	    bindTo: function(view){
-	      this.listenTo(view, 'cover:show', this.show);
-	      this.listenTo(view, 'cover:hide', this.hide);
-	    },
-	};
-
-	var View = Backbone.View.extend(Cover);
-
-	module.exports = function($element){
-	  var Cover = new View({layer: $element});
-	  $element.append(Cover.el);
-
-	  return function(view) {
-	    Cover.bindTo(view);
-	  }
-	};
-
-
-/***/ },
-/* 88 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// style-loader: Adds some css to the DOM by adding a <style> tag
-
-	// load the styles
-	var content = __webpack_require__(89);
-	if(typeof content === 'string') content = [[module.id, content, '']];
-	// add the styles to the DOM
-	var update = __webpack_require__(73)(content, {});
-	// Hot Module Replacement
-	if(false) {
-		// When the styles change, update the <style> tags
-		module.hot.accept("!!/Users/cvaldez/Documents/devs/wfm-taxi/client/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/wfm-taxi/client/www/style/modal.css", function() {
-			var newContent = require("!!/Users/cvaldez/Documents/devs/wfm-taxi/client/node_modules/css-loader/index.js!/Users/cvaldez/Documents/devs/wfm-taxi/client/www/style/modal.css");
-			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
-			update(newContent);
-		});
-		// When the module is disposed, remove the <style> tags
-		module.hot.dispose(function() { update(); });
-	}
-
-/***/ },
-/* 89 */
-/***/ function(module, exports, __webpack_require__) {
-
-	exports = module.exports = __webpack_require__(72)();
-	// imports
-
-
-	// module
-	exports.push([module.id, ".modal-demo.open {\n  height: 100%;\n  width: 100%;\n  z-index: 4;\n  background: black;\n  opacity: 0.5 !important;\n  border-radius: 0px !important;\n}\n\n.modal-demo {\n  border-radius: 100px;\n  opacity: 0;\n  top: 0px;\n  left: 0px;\n  position: absolute;\n -webkit-transition: width, top, border-radius, opacity 0.4s;\n}\n\n.blur-background {\n  filter: blur(3px);\n  -webkit-filter: blur(2px);\n  -moz-filter: blur(2px);\n  -o-filter: blur(2px);\n  -ms-filter: blur(2px);\n  opacity: 0.8;\n}\n", ""]);
-
-	// exports
 
 
 /***/ }
